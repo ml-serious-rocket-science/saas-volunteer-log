@@ -20,43 +20,57 @@ Callouts do **not** get calendar events. They are captured via the Google Form a
 
 **The two-way link between Calendar and Sheet:**
 - Sheet records store `calendar_event_id` — the Google Calendar event ID, copied from the event URL
-- Calendar event descriptions store `Sheet record: SH-YYYYMMDD-001` — a reference back to the Sheet row
+- Calendar event descriptions store `Sheet record: 2026-04-21-N-001` — a reference back to the Sheet row
 - This allows navigation in either direction and survives a future port to an app
 
 **Workflow:**
-1. Roster arrives → create Calendar shift events (rostering step, Eucalyptus)
-2. Sheet row created → paste Calendar event ID into `calendar_event_id`, add Sheet record ID to Calendar description
-3. Callout occurs during shift → fill in capture Form on phone — no calendar event needed
-4. After shift → update Sheet row status to Completed, fill in actuals
-5. Training scheduled → Calendar event (Sage) → Sheet row filled in when complete
+1. Roster arrives → Apps Script importer creates Calendar events + Shifts tab stub rows automatically
+2. Callout occurs during shift → fill in capture Form on phone — no calendar event needed
+3. After shift → update Sheet row status to Completed, correct actual times only if they differed
+4. Training scheduled → Calendar event (Sage) → Sheet row filled in when complete
 
 ---
 
 ## Shift record
 
 The shift record is created in two stages:
-- **Stage 1 (before shift):** Calendar event created — the rostering step
-- **Stage 2 (after shift):** Sheet row filled in with actuals — hours, callouts, notes
+- **Stage 1 (import):** Apps Script creates the row from the roster email — all scheduled fields populated automatically including actual times pre-filled from scheduled times
+- **Stage 2 (after shift):** Update status to Completed; correct actual times only if they differed from scheduled; add callout IDs and notes
 
 | Field | Type | Values / format | Notes |
 |---|---|---|---|
-| `shift_id` | String | `SH-YYYYMMDD-NNN` | Primary key |
-| `calendar_event_id` | String | Google Calendar event ID | Copy from Calendar event URL |
-| `status` | Enum | `Scheduled`, `Completed`, `Cancelled` | `Scheduled` = Calendar entry exists, Sheet not yet filled in |
+| `shift_id` | String | `YYYY-MM-DD-{D\|N}-NNN` | Primary key. Date + shift type code + sequence. e.g. `2026-04-21-N-001`. Portable across stations. |
+| `calendar_event_id` | String | Google Calendar event ID | Populated by importer |
+| `status` | Enum | `Scheduled`, `Completed`, `Cancelled` | `Scheduled` = imported, not yet completed |
 | `date` | Date | `YYYY-MM-DD` | Date shift started |
-| `start_time` | Time | `HH:MM` | Scheduled on-call start |
-| `end_time` | Time | `HH:MM` | Scheduled on-call end |
-| `actual_start_time` | Time | `HH:MM` | Actual start — blank if same as scheduled |
-| `actual_end_time` | Time | `HH:MM` | Actual end — blank if same as scheduled |
-| `duration_hours` | Decimal | Calculated | Derived from actual times if present, else scheduled |
-| `overnight` | Boolean | `Yes` / `No` | Whether shift crossed midnight |
-| `station` | String | Station name | e.g. "Stirling" |
-| `callout_ids` | String | Comma-separated `CO-` IDs | Links to callout records during this shift |
+| `start_time` | Time | `HH:MM` | Scheduled on-call start — from roster |
+| `end_time` | Time | `HH:MM` | Scheduled on-call end — from roster |
+| `actual_start_time` | Time | `HH:MM` | Pre-filled from `start_time` by importer — edit only if different |
+| `actual_end_time` | Time | `HH:MM` | Pre-filled from `end_time` by importer — edit only if different |
+| `duration_hours` | Decimal | Calculated | Derived from actual times |
+| `shift_type` | Enum | `Day` / `Night` | SAAS vocabulary. Day = starts AM ends before midnight. Night = crosses midnight. Set by importer. |
+| `shift_number` | String | e.g. `60`, `180` | SAAS operational shift number. Station-specific — Burra: Day=60, Night=180. Auto-populated by importer from station config. Enter manually for other stations. |
+| `station` | String | Station name | e.g. `Burra` |
+| `callout_ids` | String | Comma-separated shift IDs | Links to callout records during this shift — filled in Stage 2 |
 | `notes` | String | Free text | Optional |
 | `created_at` | Timestamp | `YYYY-MM-DD HH:MM:SS` | When Sheet row was created |
 
-**Stage 1 fields:** `shift_id`, `calendar_event_id`, `status = Scheduled`, `date`, `start_time`, `end_time`, `station`
-**Stage 2 fields:** `status → Completed`, `actual_start_time`, `actual_end_time`, `callout_ids`, `notes`
+### shift_id format rationale
+The ID is `YYYY-MM-DD-{D|N}-NNN` rather than station-specific (e.g. `burra60`) because:
+- It remains valid if you work at another station
+- The date and shift type are immediately readable
+- Station and shift number are captured in `station` and `shift_number` fields where they belong
+- The sequence suffix (`001`) handles the rare case of two shifts on the same date
+
+**Stage 1 fields (auto-populated by importer):** `shift_id`, `calendar_event_id`, `status = Scheduled`, `date`, `start_time`, `end_time`, `actual_start_time`, `actual_end_time`, `shift_type`, `shift_number`, `station`, `created_at`
+
+**Stage 2 fields (fill in after shift):** `status → Completed`, `actual_start_time` (if changed), `actual_end_time` (if changed), `callout_ids`, `notes`
+
+### Station shift number reference
+| Station | Day shift number | Night shift number |
+|---|---|---|
+| Burra | 60 | 180 |
+| *(add others as encountered)* | | |
 
 ---
 
@@ -72,7 +86,7 @@ Captured via Google Form immediately after a callout. No calendar event — the 
 | `time_paged` | Time | `HH:MM` | Time the page came in |
 | `time_cleared` | Time | `HH:MM` | Time back available / at station |
 | `duration_minutes` | Integer | Calculated | Derived — do not store manually |
-| `parent_shift_id` | String | `SH-` ID | Which shift this callout occurred during |
+| `parent_shift_id` | String | Shift ID | Which shift this callout occurred during |
 | `incident_type` | Enum | See controlled list below | Constrained dropdown |
 | `response_code` | Enum | `Code 1`, `Code 2`, `Code 3` | Urgency of response |
 | `patient_count` | Integer | 0–9 | Number of patients |
@@ -153,7 +167,7 @@ Created when an expense claim is submitted to SAAS.
 | `expense_id` | String | `EX-YYYYMMDD-NNN` | Primary key |
 | `date_submitted` | Date | `YYYY-MM-DD` | When submitted to SAAS app |
 | `claim_type` | Enum | `Callout`, `Training`, `Other` | |
-| `linked_record_id` | String | `CO-` or `TR-` ID | Foreign key back to source record |
+| `linked_record_id` | String | Shift or Training ID | Foreign key back to source record |
 | `callout_number` | String | Copied from callout record | Denormalised for easy claim reference |
 | `amount_claimed` | Decimal | e.g. `45.50` | In AUD |
 | `status` | Enum | `Submitted`, `Approved`, `Paid`, `Rejected` | |
@@ -189,3 +203,7 @@ Documented here so calculations can be reimplemented in an app — not locked in
 | 2026-04-27 | Removed `calendar_event_id` from callout record | Callouts not given calendar events — shift event covers the period |
 | 2026-04-27 | Calendar is rostering only — callouts log to Sheet via Form | Privacy and simplicity — no operational detail in Calendar |
 | 2026-04-27 | Shift colour changed from Blueberry to Eucalyptus | Closest available Google Calendar colour to SAAS green |
+| 2026-04-28 | Renamed `overnight` to `shift_type`, values `Day`/`Night` | Aligns with SAAS vocabulary; more meaningful than Yes/No |
+| 2026-04-28 | `actual_start_time` and `actual_end_time` pre-filled by importer | Defaults to scheduled times — edit by exception only |
+| 2026-04-28 | `shift_id` format changed from `SH-YYYYMMDD-NNN` to `YYYY-MM-DD-{D\|N}-NNN` | Portable across stations; date and type readable at a glance |
+| 2026-04-28 | Added `shift_number` field | SAAS operational shift number (station-specific: Burra Day=60, Night=180); auto-populated by importer |

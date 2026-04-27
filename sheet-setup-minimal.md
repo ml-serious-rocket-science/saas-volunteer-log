@@ -19,26 +19,29 @@ Rename the default `Sheet1` tab to `Shifts`.
 
 Add these column headers in Row 1, exactly as written:
 
-| Col | Header |
-|-----|--------|
-| A | `shift_id` |
-| B | `calendar_event_id` |
-| C | `status` |
-| D | `date` |
-| E | `start_time` |
-| F | `end_time` |
-| G | `actual_start_time` |
-| H | `actual_end_time` |
-| I | `duration_hours` |
-| J | `overnight` |
-| K | `station` |
-| L | `callout_ids` |
-| M | `notes` |
-| N | `created_at` |
+| Col | Header | Notes |
+|-----|--------|-------|
+| A | `shift_id` | e.g. `2026-04-21-N-001` |
+| B | `calendar_event_id` | |
+| C | `status` | |
+| D | `date` | |
+| E | `start_time` | |
+| F | `end_time` | |
+| G | `actual_start_time` | Pre-filled by importer |
+| H | `actual_end_time` | Pre-filled by importer |
+| I | `duration_hours` | |
+| J | `shift_type` | `Day` or `Night` |
+| K | `shift_number` | e.g. `60` or `180` — SAAS operational number |
+| L | `station` | |
+| M | `callout_ids` | |
+| N | `notes` | |
+| O | `created_at` | |
 
 - Bold Row 1
 - Freeze Row 1: View → Freeze → 1 row
 - Tab colour: Green (right-click tab → Change colour)
+
+**Note:** `actual_start_time` and `actual_end_time` are pre-filled by the importer from scheduled times — edit only if the actual times differed. `shift_number` is the SAAS-assigned number for the shift (Burra: Day=60, Night=180).
 
 That's it for this tab — the importer will populate rows automatically.
 
