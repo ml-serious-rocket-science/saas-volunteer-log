@@ -63,3 +63,32 @@ Format: date · decision · reasoning · alternatives considered
 **Reasoning:** This is a solo project. The overhead of branches and PRs serves collaboration, not individual work. Descriptive commit messages provide sufficient history.
 
 **Review trigger:** If another contributor joins, introduce a simple branch-per-change workflow at that point.
+
+---
+
+## 2026-04-27 — Google Calendar is the entry point for the workflow, not the Sheet
+
+**Decision:** Google Calendar is the primary interface for scheduling and viewing upcoming shifts and training events. The Sheet is the data store and reporting layer. The Calendar is where the workflow *starts*, not where it ends up.
+
+**Reasoning:** The mental model of a volunteer starts with "when are my upcoming shifts" — not "what did I log last week." Making Calendar the front door means:
+- Shifts are visible on Android alongside personal calendar
+- Scheduling a shift is a natural first step, not an admin afterthought
+- A calendar entry for an on-call shift becomes the trigger for filling in details once the shift is complete
+- Retrospective logging is also supported — past events can be added to Calendar and then linked to Sheet records
+- Training events and callouts can also appear on the calendar, giving a single view of all volunteer activity
+
+**Portability note:** In a future app, the Calendar role would be replaced by an in-app schedule view. Google Calendar event IDs should be stored in shift and training records so the relationship is portable.
+
+**Alternatives considered:**
+- Sheet-only workflow (no calendar) — rejected because it has no forward-looking view; you can't see upcoming shifts
+- Separate personal calendar (not integrated) — rejected because it duplicates effort and breaks the "log once, use everywhere" principle
+- A third-party scheduling app — rejected because it adds a dependency and breaks out of the Google Workspace stack
+
+**Workflow this defines:**
+
+```
+BEFORE shift:     Add shift to Google Calendar → visible on phone with reminders
+DURING/AFTER:     Shift happens → fill in Sheet details (hours, callouts, notes)
+AFTER callout:    Open callout form → log callout number and clinical details
+EXPENSE TIME:     Open Sheet expense view → all data already there, pre-filled
+```

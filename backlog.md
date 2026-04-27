@@ -6,6 +6,30 @@ Items are roughly grouped by theme, not prioritised within groups.
 
 ---
 
+## Roster import (high value — build after prototype is stable)
+
+The weekly roster arrives by email on or around Wednesday of the prior week as an Excel attachment. The goal is to automate shift creation from this email into Google Calendar and stub Sheet rows.
+
+**Three layers — implement in order:**
+
+- [ ] **Layer 1 (now):** Manual — open Excel roster, add your shifts to Google Calendar by hand. ~5 min/week. Do this first to understand the format and workflow before automating.
+- [ ] **Layer 2 (after a month of data):** Apps Script — watches Gmail for roster email, parses the Excel attachment, presents a confirmation UI showing your shifts for the coming week. One click creates Calendar events and stub Sheet rows (status = Scheduled).
+- [ ] **Layer 3 (stretch):** Fully automated — script runs on Wednesday trigger, finds email, parses roster, creates events, sends a summary notification. Only viable if roster format is proven to be consistent.
+
+**Prerequisites before building Layer 2:**
+- Collect 3–4 real roster files to understand the format (column names, sheet structure, how your name appears)
+- Confirm the email sender and subject line are consistent enough to search for reliably
+- Confirm the Excel structure doesn't change week to week
+
+**Technical approach (when ready):**
+- Gmail API via Apps Script to find the email (`GmailApp.search()`)
+- `DriveApp` + `SpreadsheetApp` to open the Excel attachment in-memory
+- Parse rows where volunteer name matches, extract date + start/end time
+- `CalendarApp` to create events with correct colour coding
+- `SpreadsheetApp` to insert stub rows into Shifts tab (status = Scheduled)
+
+---
+
 ## Capture improvements
 
 - [ ] Add a "quick repeat" option to the callout form — prefills most fields from the previous callout for multi-patient or back-to-back jobs

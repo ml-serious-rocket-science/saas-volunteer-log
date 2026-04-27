@@ -4,11 +4,21 @@ Read this file at the start of every session before making any changes.
 
 ---
 
+## Current status
+
+Last updated: 2026-04-27
+Phase: Prototype — building foundations
+Last completed: Repo setup, GitHub connected, full doc structure in place (schema, decisions, backlog), Calendar adopted as workflow entry point, roster automation approach documented
+Next session: Write Sheet setup spec → create Google Sheet → set up callout capture Form
+Blocked on: Nothing
+
+---
+
 ## What this project is
 
 A personal activity logging system for Michael, a SA Ambulance Service (SAAS) volunteer based in Adelaide. It tracks callouts, on-call shifts, and training events to simplify expense claims, CPD records, and monthly stats.
 
-**Current phase:** Prototype using Google Workspace (Forms + Sheets)  
+**Current phase:** Prototype using Google Workspace (Forms + Sheets + Calendar)
 **Potential next phase:** Progressive web app — only if the prototype proves useful and the data model stabilises
 
 ---
@@ -19,6 +29,60 @@ A personal activity logging system for Michael, a SA Ambulance Service (SAAS) vo
 - Monthly on-call hours need tracking for personal records
 - The SAAS expenses app requires specific callout details that fade quickly without a log
 - Clinical reflections and learning opportunities need a dedicated place
+- Upcoming shifts need to be visible — the workflow starts with scheduling, not retrospective logging
+
+---
+
+## System components
+
+| Component | Tool | Purpose |
+|---|---|---|
+| Schedule / forward view | Google Calendar | See upcoming shifts and training; entry point for the workflow |
+| Master data store | Google Sheet | All records, tabs per activity type |
+| Callout capture | Google Form (Android homescreen) | Quick entry post-callout |
+| Expense prep view | Sheet tab | Pre-filled data for SAAS expenses app |
+| Reflections log | Google Doc or Sheet tab | CPD and learning notes |
+
+## Core workflow
+
+```
+SCHEDULE:   Shift rostered → add to Google Calendar (blue)
+            Training scheduled → add to Google Calendar (green)
+
+ON SHIFT:   Callout occurs → open Form on homescreen → log callout number + details
+
+AFTER:      Open Sheet → update shift record (Scheduled → Completed)
+            Add actual times, link callout IDs
+
+EXPENSE:    Open expense view → all data pre-populated from callout/shift records
+```
+
+---
+
+## Planned evolution — known intentional gaps
+
+These are features that are deliberately deferred, not forgotten. They have a planned approach and should be raised if the user hasn't mentioned them after the prototype has been running for a month.
+
+### Roster import automation
+
+**Current state (Layer 1 — intentionally temporary):**
+Shifts are added to Google Calendar manually after the weekly roster arrives by email on or around Wednesday of the prior week as an Excel attachment.
+
+**This is a placeholder, not the end state.** Manual entry was chosen to start because we need to understand the roster format before automating it.
+
+**Planned evolution:**
+- **Layer 2:** Apps Script that watches Gmail for the roster email, parses the Excel attachment, and creates Calendar events + stub Sheet rows with one confirmation click. Prerequisites: collect 3–4 real roster files, confirm email sender/subject consistency, confirm Excel structure is stable week-to-week.
+- **Layer 3:** Fully automated — script runs on a Wednesday trigger, finds the email, parses, creates events and rows, sends a confirmation summary.
+
+**Prompt for future session:** "We planned to automate roster import from the weekly Excel email — the backlog has the full technical approach. Has the roster format been consistent enough to attempt Layer 2?"
+
+### App / PWA
+
+**Current state:** Google Workspace prototype.
+
+**Planned evolution:** If the decision gate is met (stable data model, habit formed, other volunteers interested), port to a PWA. The `calendar_event_id` field on all records and the documented summary logic in `schema.md` are specifically there to make this port clean.
+
+**Prompt for future session:** "Check the decision gate in this file — have all three conditions been met?"
 
 ---
 
@@ -67,16 +131,16 @@ These are the rules that govern how changes are made to this project. Follow the
 
 Four record types. Full detail in `schema.md`.
 
-**Callout** — primary record. Captured via Google Form on Android homescreen immediately post-callout. Key fields: `callout_number` (for expense claims), `incident_type` (dropdown), `patient_presentation`, `clinical_actions`, `learning_reflection`.
+**Shift** — the anchor record. Created in two stages: Stage 1 (scheduled, Calendar entry exists), Stage 2 (completed, actuals filled in). Has `calendar_event_id` linking to Google Calendar.
 
-**Shift** — on-call periods. Tracks start/end time, station, and links to callout IDs that occurred during the shift. Used for monthly hours calculation.
+**Callout** — primary clinical record. Captured via Google Form on Android homescreen immediately post-callout. Key fields: `callout_number` (for expense claims), `incident_type` (dropdown), `patient_presentation`, `clinical_actions`, `learning_reflection`. Links to parent shift via `parent_shift_id`.
 
-**Training** — courses and certifications. Includes `cert_expiry` for renewal tracking.
+**Training** — courses and certifications. Same two-stage pattern as shifts (Scheduled → Completed). Includes `cert_expiry` for renewal tracking.
 
-**Expense** — created when a claim is submitted to the SAAS app. Links back to callout or training records. Includes claim status and date paid.
+**Expense** — created when a claim is submitted to the SAAS app. Links back to callout or training records.
 
 ### Portability principle
-All fields are typed and constrained (no logic-only formula fields, no ambiguous free text where a dropdown applies). This means the Google Sheet can be ported to an app without redesigning the data model — it becomes a UI job, not a data job.
+All fields are typed and constrained. `calendar_event_id` stored on records so Calendar linkage survives a port to an app. Summary logic documented in `schema.md` — not locked inside Sheet formulas.
 
 ---
 
@@ -90,8 +154,8 @@ All fields are typed and constrained (no logic-only formula fields, no ambiguous
 
 ## Technology
 
-- **Prototype:** Google Forms + Google Sheets + (eventually) Google Apps Script
-- **Potential app stack:** PWA, likely backed by Google Sheets API (lowest friction) or Firebase/Supabase (if it needs to scale to multiple volunteers)
+- **Prototype:** Google Calendar + Google Forms + Google Sheets + (eventually) Google Apps Script
+- **Potential app stack:** PWA, likely backed by Google Sheets API or Firebase/Supabase
 - **This repo:** Markdown docs + Apps Script files. No build tooling needed.
 
 ---
@@ -107,7 +171,9 @@ All three should be true before starting app development:
 
 ## What to do at the start of a session
 
-1. Read this file
+1. Read this file — note the **current status** section at the top
 2. Read `schema.md` if the session involves data model work
 3. Check `backlog.md` if the user mentions wanting to add something new — it may already be there
 4. Ask what the session goal is before making changes
+5. If the prototype has been running for a while, check the "Planned evolution" section — are any deferred features now ready to build?
+6. Update the **current status** section at the end of the session
