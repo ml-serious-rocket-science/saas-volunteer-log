@@ -1,0 +1,11 @@
+{
+  "name": "roster-tools",
+  "version": "1.0.0",
+  "description": "Scripts for inspecting and parsing SAAS roster Excel files",
+  "scripts": {
+    "inspect": "node inspect-roster.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
