@@ -184,7 +184,7 @@ function importAllNewRosters() {
     if (err) lines.push('   ⚠ Error: ' + err.error);
     else if (fileShifts.length === 0) lines.push('   (no shifts for ' + CONFIG.volunteerName + ' this week)');
     else fileShifts.forEach(s => lines.push(
-      '   • ' + s.shiftId + '  ' + s.startTime + '–' + s.endTime +
+      '   • ' + s.date + ' (' + s.shiftType + ')  ' + s.startTime + '–' + s.endTime +
       '  shift #' + (s.shiftNumber || '?')
     ));
   });
@@ -235,7 +235,8 @@ function importLatestRoster() {
 
   const lines = [latest.filename, '', 'Shifts found:'];
   shifts.forEach(s => lines.push(
-    '  • ' + s.shiftId + '  ' + s.startTime + '–' + s.endTime + '  shift #' + (s.shiftNumber || '?')
+    '  • ' + s.date + ' (' + s.shiftType + ')  ' + s.startTime + '–' + s.endTime +
+    '  shift #' + (s.shiftNumber || '?')
   ));
   lines.push('', 'Continue?');
 
@@ -361,22 +362,16 @@ function extractShifts_(display, filename) {
     const startDate = new Date(y, m, d, startHour, 0, 0);
     const endDate   = new Date(y, m, d + (isNight ? 1 : 0), endHour % 24, 0, 0);
 
-    // Look up SAAS shift number from station config
     const stationNumbers = CONFIG.shiftNumbers[CONFIG.station] || {};
     const shiftNumber = stationNumbers[shiftType] || '';
 
-    // Generate shift ID: YYYY-MM-DD-{D|N}-NNN
-    // Note: sequence is assigned in createEventsAndRows_ after checking existing rows.
-    // Here we store the base parts and let createEventsAndRows_ finalise the ID.
     shifts.push({
-      day: dayName,
-      date: dateStr,
+      day: dayName, date: dateStr,
       startTime: pad_(startHour) + ':00',
       endTime:   pad_(endHour % 24) + ':00',
       shiftType, shiftNumber, startDate, endDate,
       station: CONFIG.station, hours: matchingRows.length,
-      // shiftId is assigned in createEventsAndRows_ — placeholder here
-      shiftId: null,
+      shiftId: null, // assigned in createEventsAndRows_
     });
   });
 
@@ -400,9 +395,8 @@ function createEventsAndRows_(shifts) {
   shifts.forEach(shift => {
     if (shiftExists_(shiftsSheet, shift.date, shift.startTime)) { skipped++; return; }
 
-    // Generate shift ID now that we have the sheet to check for collisions
     const shiftId = generateShiftId_(shift.date, shift.shiftType, shiftsSheet);
-    shift.shiftId = shiftId; // update object so confirmation dialog can reference it
+    shift.shiftId = shiftId;
 
     const event = calendar.createEvent(
       'On-call — ' + shift.station,
@@ -419,8 +413,8 @@ function createEventsAndRows_(shifts) {
     row[SHIFTS_COLS.date]              = shift.date;
     row[SHIFTS_COLS.start_time]        = shift.startTime;
     row[SHIFTS_COLS.end_time]          = shift.endTime;
-    row[SHIFTS_COLS.actual_start_time] = shift.startTime;  // pre-filled — edit by exception
-    row[SHIFTS_COLS.actual_end_time]   = shift.endTime;    // pre-filled — edit by exception
+    row[SHIFTS_COLS.actual_start_time] = shift.startTime;
+    row[SHIFTS_COLS.actual_end_time]   = shift.endTime;
     row[SHIFTS_COLS.shift_type]        = shift.shiftType;
     row[SHIFTS_COLS.shift_number]      = shift.shiftNumber;
     row[SHIFTS_COLS.station]           = shift.station;
@@ -501,7 +495,6 @@ function shiftExists_(sheet, date, startTime) {
 /**
  * Generates a shift ID in format YYYY-MM-DD-{D|N}-NNN
  * D = Day shift, N = Night shift
- * Sequence suffix handles rare case of two shifts on the same date.
  */
 function generateShiftId_(dateStr, shiftType, sheet) {
   const typeCode = shiftType === 'Night' ? 'N' : 'D';
