@@ -6,81 +6,86 @@ This document defines every field in the data model. **Update this file before m
 
 ## How Google Calendar fits
 
-Google Calendar is the entry point for the workflow. Each shift and training event gets a Calendar entry when scheduled. The Calendar event ID is stored in the Sheet record so the two stay linked.
+Google Calendar is for **rostering and visibility only** — not data capture. It shows upcoming shifts and training for Michael and his wife. All operational detail (callouts, clinical notes, expenses, reflections) lives in the Sheet.
 
-**Calendar event types and their Sheet record:**
+**Calendar event types:**
 
-| Calendar event type | Colour code | Sheet record |
+| Event type | Colour | Sheet record |
 |---|---|---|
-| On-call shift | Blue | Shift record |
-| Callout (attended) | Red | Callout record |
-| Training event | Green | Training record |
+| On-call shift | Blueberry | Shift record |
+| Training event | Sage | Training record |
+| Other volunteer activity | Graphite | Optional |
+
+Callouts do **not** get calendar events. They are captured via the Google Form and stored in the Callouts tab. The shift event covers the time period.
+
+**The two-way link between Calendar and Sheet:**
+- Sheet records store `calendar_event_id` — the Google Calendar event ID, copied from the event URL
+- Calendar event descriptions store `Sheet record: SH-YYYYMMDD-001` — a reference back to the Sheet row
+- This allows navigation in either direction and survives a future port to an app
 
 **Workflow:**
-1. Shift is rostered → create Calendar event (shift type, start/end time, station in title)
-2. Shift occurs → open Sheet, fill in shift details, paste Calendar event ID
-3. Callout occurs during shift → fill in callout form on phone
-4. Training scheduled → create Calendar event → add training record when complete
-5. Retrospective logging → add past Calendar event, then create Sheet record linked to it
+1. Roster arrives → create Calendar shift events (rostering step, Blueberry)
+2. Sheet row created → paste Calendar event ID into `calendar_event_id`, add Sheet record ID to Calendar description
+3. Callout occurs during shift → fill in capture Form on phone — no calendar event needed
+4. After shift → update Sheet row status to Completed, fill in actuals
+5. Training scheduled → Calendar event (Sage) → Sheet row filled in when complete
 
 ---
 
 ## Shift record
 
 The shift record is created in two stages:
-- **Stage 1 (before shift):** Calendar event created — this is the scheduling step
+- **Stage 1 (before shift):** Calendar event created — the rostering step
 - **Stage 2 (after shift):** Sheet row filled in with actuals — hours, callouts, notes
 
 | Field | Type | Values / format | Notes |
 |---|---|---|---|
 | `shift_id` | String | `SH-YYYYMMDD-NNN` | Primary key |
-| `calendar_event_id` | String | Google Calendar event ID | Links Calendar entry to this record. Copy from Calendar event URL. |
-| `status` | Enum | `Scheduled`, `Completed`, `Cancelled` | `Scheduled` = Calendar entry exists, Sheet not yet filled. `Completed` = both done. |
+| `calendar_event_id` | String | Google Calendar event ID | Copy from Calendar event URL |
+| `status` | Enum | `Scheduled`, `Completed`, `Cancelled` | `Scheduled` = Calendar entry exists, Sheet not yet filled in |
 | `date` | Date | `YYYY-MM-DD` | Date shift started |
 | `start_time` | Time | `HH:MM` | Scheduled on-call start |
 | `end_time` | Time | `HH:MM` | Scheduled on-call end |
-| `actual_start_time` | Time | `HH:MM` | Actual start if different — blank if same as scheduled |
-| `actual_end_time` | Time | `HH:MM` | Actual end if different — blank if same as scheduled |
-| `duration_hours` | Decimal | Calculated | Derived from actual times if present, else scheduled times |
+| `actual_start_time` | Time | `HH:MM` | Actual start — blank if same as scheduled |
+| `actual_end_time` | Time | `HH:MM` | Actual end — blank if same as scheduled |
+| `duration_hours` | Decimal | Calculated | Derived from actual times if present, else scheduled |
 | `overnight` | Boolean | `Yes` / `No` | Whether shift crossed midnight |
 | `station` | String | Station name | e.g. "Stirling" |
 | `callout_ids` | String | Comma-separated `CO-` IDs | Links to callout records during this shift |
 | `notes` | String | Free text | Optional |
 | `created_at` | Timestamp | `YYYY-MM-DD HH:MM:SS` | When Sheet row was created |
 
-**Stage 1 fields (fill in when scheduling):** `shift_id`, `calendar_event_id`, `status = Scheduled`, `date`, `start_time`, `end_time`, `station`
-
-**Stage 2 fields (fill in after shift):** `status → Completed`, `actual_start_time`, `actual_end_time`, `callout_ids`, `notes`
+**Stage 1 fields:** `shift_id`, `calendar_event_id`, `status = Scheduled`, `date`, `start_time`, `end_time`, `station`
+**Stage 2 fields:** `status → Completed`, `actual_start_time`, `actual_end_time`, `callout_ids`, `notes`
 
 ---
 
 ## Callout record
 
-The most important record type. Captured via Google Form immediately after a callout.
+Captured via Google Form immediately after a callout. No calendar event — the parent shift covers the time period.
 
 | Field | Type | Values / format | Notes |
 |---|---|---|---|
-| `callout_id` | String | `CO-YYYYMMDD-NNN` | Auto-generated. Date + sequence. Primary key. |
-| `calendar_event_id` | String | Google Calendar event ID | Optional — populated if a Calendar entry was created for this callout |
-| `callout_number` | String | As issued by SAAS comms | The official dispatch number. Critical for expense claims. |
+| `callout_id` | String | `CO-YYYYMMDD-NNN` | Primary key |
+| `callout_number` | String | As issued by SAAS comms | Critical for expense claims |
 | `date` | Date | `YYYY-MM-DD` | Date of callout |
 | `time_paged` | Time | `HH:MM` | Time the page came in |
 | `time_cleared` | Time | `HH:MM` | Time back available / at station |
-| `duration_minutes` | Integer | Calculated from above | Derived field — do not store manually |
-| `parent_shift_id` | String | `SH-` ID | Which shift this callout occurred during. Optional for standalone callouts. |
+| `duration_minutes` | Integer | Calculated | Derived — do not store manually |
+| `parent_shift_id` | String | `SH-` ID | Which shift this callout occurred during |
 | `incident_type` | Enum | See controlled list below | Constrained dropdown |
 | `response_code` | Enum | `Code 1`, `Code 2`, `Code 3` | Urgency of response |
 | `patient_count` | Integer | 0–9 | Number of patients |
-| `patient_presentation` | String | Free text, max 200 chars | Brief clinical summary — no identifying info |
+| `patient_presentation` | String | Free text, max 200 chars | Clinical summary — no identifying info |
 | `clinical_actions` | String | Free text, max 500 chars | What you did |
 | `outcome` | Enum | See controlled list below | Patient outcome / disposition |
 | `learning_reflection` | String | Free text | Optional CPD note |
 | `expense_claimable` | Boolean | `Yes` / `No` | Whether a claim will be submitted |
-| `expense_claim_id` | String | Links to expense record | Foreign key — populated after claim submitted |
+| `expense_claim_id` | String | Links to expense record | Populated after claim submitted |
 | `created_at` | Timestamp | `YYYY-MM-DD HH:MM:SS` | Auto-populated by Form |
 
 ### Incident type controlled list
-*(Refine this list based on SAAS dispatch categories — these are starting values)*
+*(Refine based on SAAS dispatch categories — these are starting values)*
 
 - Cardiac / chest pain
 - Respiratory
@@ -120,7 +125,7 @@ The most important record type. Captured via Google Form immediately after a cal
 | `cert_issued` | Boolean | `Yes` / `No` | |
 | `cert_name` | String | Free text | e.g. "HLTAID011 Provide First Aid" |
 | `cert_expiry` | Date | `YYYY-MM-DD` | Blank if no expiry |
-| `days_until_expiry` | Integer | Calculated | Derived — formula: `cert_expiry - TODAY()` |
+| `days_until_expiry` | Integer | Calculated | Derived: `cert_expiry - TODAY()` |
 | `expense_claimable` | Boolean | `Yes` / `No` | |
 | `expense_claim_id` | String | Links to expense record | |
 | `notes` | String | Free text | |
@@ -160,7 +165,7 @@ Created when an expense claim is submitted to SAAS.
 
 ## Summary logic
 
-These calculations live in the Sheet's Summary tab. Documented here so they can be reimplemented in an app.
+Documented here so calculations can be reimplemented in an app — not locked in Sheet formulas.
 
 - **Monthly callout count:** `COUNTIFS(callouts.date, ">="&month_start, callouts.date, "<="&month_end)`
 - **Monthly shift hours:** `SUMIFS(shifts.duration_hours, shifts.date, ">="&month_start, shifts.date, "<="&month_end)`
@@ -168,7 +173,7 @@ These calculations live in the Sheet's Summary tab. Documented here so they can 
 - **Callouts by incident type:** `COUNTIF(callouts.incident_type, type_value)` per type
 - **Certs expiring within 60 days:** `COUNTIFS(training.cert_expiry, ">="&TODAY(), training.cert_expiry, "<="&TODAY()+60)`
 - **Total claimed YTD:** `SUMIFS(expenses.amount_claimed, expenses.date_submitted, ">="&year_start)`
-- **Shifts logged but not completed:** `COUNTIF(shifts.status, "Scheduled")` where date is in the past — these need following up
+- **Shifts not yet completed:** `COUNTIFS(shifts.status, "Scheduled", shifts.date, "<"&TODAY())` — past shifts still marked Scheduled
 
 ---
 
@@ -177,8 +182,9 @@ These calculations live in the Sheet's Summary tab. Documented here so they can 
 | Date | Change | Reason |
 |---|---|---|
 | 2026-04-27 | Initial schema defined | Project kickoff |
-| 2026-04-27 | Added `calendar_event_id` to shift, callout, training records | Google Calendar adopted as workflow entry point |
+| 2026-04-27 | Added `calendar_event_id` to shift and training records | Google Calendar adopted as workflow entry point |
 | 2026-04-27 | Added `status` field to shift and training records | Supports two-stage workflow: Scheduled → Completed |
 | 2026-04-27 | Added `actual_start_time`, `actual_end_time` to shift record | Actual times may differ from scheduled |
 | 2026-04-27 | Added `parent_shift_id` to callout record | Links callout to the shift it occurred during |
-| 2026-04-27 | Added Calendar event type / colour convention | Single calendar view for all volunteer activity |
+| 2026-04-27 | Removed `calendar_event_id` from callout record | Callouts not given calendar events — shift event covers the period |
+| 2026-04-27 | Calendar is rostering only — callouts log to Sheet via Form | Privacy and simplicity — no operational detail in Calendar |
