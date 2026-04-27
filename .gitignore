@@ -14,3 +14,9 @@ Thumbs.db
 
 # Apps Script local dev (if you use clasp later)
 .clasp.json
+
+# Roster files — contain other volunteers' data, not for version control
+rosters/
+
+# Node
+node_modules/

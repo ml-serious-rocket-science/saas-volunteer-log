@@ -8,9 +8,9 @@ Read this file at the start of every session before making any changes.
 
 Last updated: 2026-04-27
 Phase: Prototype — building foundations
-Last completed: Repo and docs setup, GitHub connected, calendar-setup.md written
-Next session: Follow calendar-setup.md to configure Google Calendar → write sheet-setup-spec.md → build Sheet
-Blocked on: Nothing
+Last completed: Calendar setup, roster parser proven, Apps Script importer written (scripts/RosterImport.gs)
+Next session: Create Sheet (follow sheet-setup-minimal.md) → paste RosterImport.gs → run authoriseScript() → test import
+Blocked on: Nothing — Sheet creation is the only remaining step before first live test
 
 ---
 
@@ -46,8 +46,8 @@ A personal activity logging system for Michael, a SA Ambulance Service (SAAS) vo
 ## Core workflow
 
 ```
-SCHEDULE:   Shift rostered → add to Google Calendar (blue)
-            Training scheduled → add to Google Calendar (green)
+SCHEDULE:   Roster email arrives Wednesday → SAAS Roster → Import latest roster
+            → Calendar events created + Shifts tab populated automatically
 
 ON SHIFT:   Callout occurs → open Form on homescreen → log callout number + details
 
@@ -61,26 +61,27 @@ EXPENSE:    Open expense view → all data pre-populated from callout/shift reco
 
 ## Planned evolution — known intentional gaps
 
-These are features that are deliberately deferred, not forgotten. They have a planned approach and should be raised if the user hasn't mentioned them after the prototype has been running for a month.
-
 ### Roster import automation
 
-**Current state (Layer 1 — intentionally temporary):**
-Shifts are added to Google Calendar manually after the weekly roster arrives by email on or around Wednesday of the prior week as an Excel attachment.
+**Current state:** RosterImport.gs written and ready — needs Sheet to exist for first test.
 
-**This is a placeholder, not the end state.** Manual entry was chosen to start because we need to understand the roster format before automating it.
+**What it does:**
+- Searches Gmail for all emails from jazz_vincent@hotmail.com with .xlsm attachments
+- Parses each BURRA ROSTER WEEK file for Liddy shifts
+- Shows confirmation dialog before creating anything
+- Creates Calendar events (Eucalyptus) + Shifts tab stub rows
+- Logs processed filenames in Import Log tab to prevent duplicates
+- Two menu options: "Import all new rosters" (backfill) and "Import latest roster" (weekly use)
 
-**Planned evolution:**
-- **Layer 2:** Apps Script that watches Gmail for the roster email, parses the Excel attachment, and creates Calendar events + stub Sheet rows with one confirmation click. Prerequisites: collect 3–4 real roster files, confirm email sender/subject consistency, confirm Excel structure is stable week-to-week.
-- **Layer 3:** Fully automated — script runs on a Wednesday trigger, finds the email, parses, creates events and rows, sends a confirmation summary.
+**Layer 3 (stretch):** Automatic Wednesday trigger — add after manual workflow is proven.
 
-**Prompt for future session:** "We planned to automate roster import from the weekly Excel email — the backlog has the full technical approach. Has the roster format been consistent enough to attempt Layer 2?"
+**Prompt for future session:** "RosterImport.gs is written — has the Sheet been created and the script tested yet?"
 
 ### App / PWA
 
 **Current state:** Google Workspace prototype.
 
-**Planned evolution:** If the decision gate is met (stable data model, habit formed, other volunteers interested), port to a PWA. The `calendar_event_id` field on all records and the documented summary logic in `schema.md` are specifically there to make this port clean.
+**Planned evolution:** If the decision gate is met (stable data model, habit formed, other volunteers interested), port to a PWA.
 
 **Prompt for future session:** "Check the decision gate in this file — have all three conditions been met?"
 
@@ -96,74 +97,68 @@ This repo holds **project documentation only** — not the live tool. The live t
 | `schema.md` | Authoritative data model — all fields, types, controlled lists |
 | `decisions.md` | Design decisions and reasoning |
 | `backlog.md` | Deferred ideas — review monthly |
-| `scripts/` | Apps Script and utility code |
+| `scripts/RosterImport.gs` | Apps Script — Gmail → Calendar + Shifts tab importer |
+| `scripts/roster-tools/` | Node.js scripts used to analyse roster format (dev only) |
 | `calendar-setup.md` | Step-by-step Google Calendar configuration guide |
+| `sheet-setup-minimal.md` | Minimal Sheet setup needed for importer (Shifts + Import Log tabs) |
 | `CLAUDE.md` | This file |
 
 ---
 
 ## Process rules
 
-These are the rules that govern how changes are made to this project. Follow them in every session.
-
 ### Schema changes
 1. Update `schema.md` **before** changing the Google Sheet
 2. Add a row to the `schema.md` change log with the date and reason
-3. Commit with a message like: `schema: add response_code field to callout record`
+3. Commit with message: `schema: description`
 
 ### Decisions
-- Any non-trivial choice (new field, changed approach, deferred feature) gets a `decisions.md` entry
+- Non-trivial choices get a `decisions.md` entry
 - Format: date · decision · reasoning · alternatives considered
-- Decisions are append-only — never edit past entries
+- Append-only — never edit past entries
 
 ### Backlog
-- New ideas go to `backlog.md`, not directly into the schema or Sheet
-- Don't implement backlog items until the data model has been stable for ~1 month
-- Move completed items to the "Completed" section with a date
+- New ideas go to `backlog.md`, not directly into schema or Sheet
+- Promote items only when data model has been stable ~1 month
 
 ### Commits
-- Single `main` branch — no feature branches for solo work
-- Commit messages: `type: brief description` where type is one of `schema`, `docs`, `scripts`, `backlog`, `fix`
-- No commit needed for trivial typo fixes
+- Single `main` branch
+- Message format: `type: description` where type is `schema`, `docs`, `scripts`, `backlog`, `fix`
 
 ---
 
 ## Data model summary
 
-Four record types. Full detail in `schema.md`.
+Four record types — full detail in `schema.md`.
 
-**Shift** — the anchor record. Created in two stages: Stage 1 (scheduled, Calendar entry exists), Stage 2 (completed, actuals filled in). Has `calendar_event_id` linking to Google Calendar.
+**Shift** — two-stage: Scheduled (Calendar event exists) → Completed (actuals filled in). `calendar_event_id` links to Google Calendar.
 
-**Callout** — primary clinical record. Captured via Google Form on Android homescreen immediately post-callout. Key fields: `callout_number` (for expense claims), `incident_type` (dropdown), `patient_presentation`, `clinical_actions`, `learning_reflection`. Links to parent shift via `parent_shift_id`.
+**Callout** — captured via Google Form post-callout. Key fields: `callout_number`, `incident_type`, `patient_presentation`, `clinical_actions`, `learning_reflection`. Links to parent shift via `parent_shift_id`.
 
-**Training** — courses and certifications. Same two-stage pattern as shifts (Scheduled → Completed). Includes `cert_expiry` for renewal tracking.
+**Training** — same two-stage pattern as shifts. Includes `cert_expiry`.
 
-**Expense** — created when a claim is submitted to the SAAS app. Links back to callout or training records.
-
-### Portability principle
-All fields are typed and constrained. `calendar_event_id` stored on records so Calendar linkage survives a port to an app. Summary logic documented in `schema.md` — not locked inside Sheet formulas.
+**Expense** — created when claim submitted to SAAS app. Links back to callout or training record.
 
 ---
 
 ## Key constraints
 
-- **No patient-identifying information** is stored. `patient_presentation` is a clinical summary only (e.g. "52yo male, chest pain, diaphoretic") — no names, DOBs, or addresses
-- **No SAAS operational data** beyond what's needed for personal admin
-- Keep the process lightweight — this is a personal tool, not an enterprise system. If a suggestion adds significant overhead, push it to the backlog
+- No patient-identifying information stored — `patient_presentation` is clinical summary only
+- No SAAS operational data beyond personal admin needs
+- Keep it lightweight — if a suggestion adds significant overhead, push to backlog
 
 ---
 
 ## Technology
 
-- **Prototype:** Google Calendar + Google Forms + Google Sheets + (eventually) Google Apps Script
-- **Potential app stack:** PWA, likely backed by Google Sheets API or Firebase/Supabase
-- **This repo:** Markdown docs + Apps Script files. No build tooling needed.
+- **Prototype:** Google Calendar + Google Forms + Google Sheets + Google Apps Script
+- **Potential app stack:** PWA backed by Google Sheets API or Firebase/Supabase
+- **This repo:** Markdown docs + Apps Script. No build tooling.
 
 ---
 
 ## Decision gate — when to consider building the app
 
-All three should be true before starting app development:
 1. Data model stable for ~1 month (no new fields required)
 2. Logging habit formed (used every shift)
 3. At least one other SAAS volunteer has expressed interest
@@ -172,9 +167,9 @@ All three should be true before starting app development:
 
 ## What to do at the start of a session
 
-1. Read this file — note the **current status** section at the top
+1. Read this file — note **current status** at the top
 2. Read `schema.md` if the session involves data model work
-3. Check `backlog.md` if the user mentions wanting to add something new — it may already be there
+3. Check `backlog.md` if the user mentions adding something new
 4. Ask what the session goal is before making changes
-5. If the prototype has been running for a while, check the "Planned evolution" section — are any deferred features now ready to build?
-6. Update the **current status** section at the end of the session
+5. Check "Planned evolution" section if prototype has been running a while
+6. Update **current status** at the end of the session
