@@ -8,8 +8,8 @@ Read this file at the start of every session before making any changes.
 
 Last updated: 2026-04-27
 Phase: Prototype — building foundations
-Last completed: Repo setup, GitHub connected, full doc structure in place (schema, decisions, backlog), Calendar adopted as workflow entry point, roster automation approach documented
-Next session: Write Sheet setup spec → create Google Sheet → set up callout capture Form
+Last completed: Repo and docs setup, GitHub connected, calendar-setup.md written
+Next session: Follow calendar-setup.md to configure Google Calendar → write sheet-setup-spec.md → build Sheet
 Blocked on: Nothing
 
 ---
@@ -97,6 +97,7 @@ This repo holds **project documentation only** — not the live tool. The live t
 | `decisions.md` | Design decisions and reasoning |
 | `backlog.md` | Deferred ideas — review monthly |
 | `scripts/` | Apps Script and utility code |
+| `calendar-setup.md` | Step-by-step Google Calendar configuration guide |
 | `CLAUDE.md` | This file |
 
 ---
