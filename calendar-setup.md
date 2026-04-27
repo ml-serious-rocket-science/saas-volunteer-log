@@ -64,9 +64,11 @@ Once she accepts, `SAAS Volunteering` appears in her "Other calendars". She can 
 
 ## Colour coding convention
 
+Colours chosen to align with SAAS organisational branding where possible.
+
 | Event type | Colour | Notes |
 |---|---|---|
-| On-call shift | Blueberry | Primary event type — what your wife most needs to see |
+| On-call shift | Eucalyptus | Closest available Google Calendar colour to SAAS green |
 | Training event | Sage | Confirmed training only |
 | Other volunteer activity | Graphite | Station meetings, admin days |
 
@@ -113,7 +115,7 @@ Sheet record: TR-YYYYMMDD-001
 
 1. Open the Google Calendar app
 2. Hamburger menu → find `SAAS Volunteering` → ensure it has a tick (visible)
-3. Tap the calendar name → set colour to Blueberry
+3. Tap the calendar name → set colour to Eucalyptus
 
 **Recommended notifications for shifts:**
 - 1 day before — shift is tomorrow
@@ -133,7 +135,7 @@ Set default notifications on desktop: Settings → click `SAAS Volunteering` →
    - Calendar: `SAAS Volunteering` (not personal)
    - Title: `On-call — [Station]`
    - Start/end times from the roster
-   - Colour: Blueberry
+   - Colour: Eucalyptus
    - Description: leave blank for now
 4. Your wife's calendar updates automatically
 

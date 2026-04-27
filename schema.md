@@ -12,7 +12,7 @@ Google Calendar is for **rostering and visibility only** — not data capture. I
 
 | Event type | Colour | Sheet record |
 |---|---|---|
-| On-call shift | Blueberry | Shift record |
+| On-call shift | Eucalyptus | Shift record — closest available colour to SAAS green |
 | Training event | Sage | Training record |
 | Other volunteer activity | Graphite | Optional |
 
@@ -24,7 +24,7 @@ Callouts do **not** get calendar events. They are captured via the Google Form a
 - This allows navigation in either direction and survives a future port to an app
 
 **Workflow:**
-1. Roster arrives → create Calendar shift events (rostering step, Blueberry)
+1. Roster arrives → create Calendar shift events (rostering step, Eucalyptus)
 2. Sheet row created → paste Calendar event ID into `calendar_event_id`, add Sheet record ID to Calendar description
 3. Callout occurs during shift → fill in capture Form on phone — no calendar event needed
 4. After shift → update Sheet row status to Completed, fill in actuals
@@ -188,3 +188,4 @@ Documented here so calculations can be reimplemented in an app — not locked in
 | 2026-04-27 | Added `parent_shift_id` to callout record | Links callout to the shift it occurred during |
 | 2026-04-27 | Removed `calendar_event_id` from callout record | Callouts not given calendar events — shift event covers the period |
 | 2026-04-27 | Calendar is rostering only — callouts log to Sheet via Form | Privacy and simplicity — no operational detail in Calendar |
+| 2026-04-27 | Shift colour changed from Blueberry to Eucalyptus | Closest available Google Calendar colour to SAAS green |
