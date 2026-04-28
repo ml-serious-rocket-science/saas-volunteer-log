@@ -55,7 +55,7 @@ Before building an app, three conditions should be true:
 
 ## Links
 
-- Google Sheet: *(add link once created)*
+- Google Sheet: https://docs.google.com/spreadsheets/d/1fFZY2i1y8erqrhLECrlJJS5cWMlwAVtSS4d8GTdub9k/edit?gid=0#gid=0
 - Google Form: *(add link once created)*
 - SAAS Expenses App: *(add link)*
 

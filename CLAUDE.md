@@ -8,8 +8,8 @@ Read this file at the start of every session before making any changes.
 
 Last updated: 2026-04-28
 Phase: Prototype — full Sheet implementation in progress
-Last completed: sheet-setup-spec.md written — covers _lists, Callouts, Training, Expenses, Summary tabs with all headers, formulas, validation, and conditional formatting
-Next session: Follow sheet-setup-spec.md to build remaining Sheet tabs → then build callout capture Google Form
+Last completed: SetupSheet.gs written (idempotent — creates/configures all tabs, safe to rerun); _lists, Shifts, Callouts manually configured; Expenses exists but unconfigured
+Next session: Run SetupSheet.gs → verify all tabs → build callout capture Google Form
 Blocked on: Nothing
 
 ---
