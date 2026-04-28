@@ -28,7 +28,10 @@ const CONFIG = {
   importLogTab:     'Import Log',
   volunteerName:    'Liddy',
   station:          'Burra',
-  eventColour:      CalendarApp.EventColor.TEAL,
+  // Valid CalendarApp.EventColor values:
+  // PALE_BLUE, PALE_GREEN, MAUVE, PALE_RED, YELLOW, ORANGE, CYAN, GRAY, BLUE, GREEN, RED
+  // GREEN is the closest to the Eucalyptus colour set on the calendar manually
+  eventColour:      CalendarApp.EventColor.GREEN,
 
   // SAAS operational shift numbers by station and shift type.
   // Add new stations here as needed — leave blank if unknown.
@@ -44,7 +47,7 @@ const DAY_COLS = {
 
 // Shifts tab column indices (0-based) — must match sheet-setup-minimal.md
 const SHIFTS_COLS = {
-  shift_id:          0,  // A  e.g. 2026-04-21-N-001
+  shift_id:          0,  // A  e.g. 2026-03-06-D-001
   calendar_event_id: 1,  // B
   status:            2,  // C
   date:              3,  // D
@@ -296,13 +299,19 @@ function parseRosterBlob_(blob, filename) {
 function uploadAndConvert_(blob, filename) {
   const token = ScriptApp.getOAuthToken();
   const boundary = 'saas_roster_' + Date.now();
-  const metadata = JSON.stringify({ name: '_roster_tmp_' + filename.replace(/\.xlsm?$/i,''), mimeType: 'application/vnd.google-apps.spreadsheet' });
+  const metadata = JSON.stringify({
+    name: '_roster_tmp_' + filename.replace(/\.xlsm?$/i, ''),
+    mimeType: 'application/vnd.google-apps.spreadsheet',
+  });
 
   const response = UrlFetchApp.fetch(
     'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
     {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary },
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'multipart/related; boundary=' + boundary,
+      },
       payload: '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + metadata + '\r\n' +
                '--' + boundary + '\r\nContent-Type: application/vnd.ms-excel.sheet.macroenabled.12\r\nContent-Transfer-Encoding: base64\r\n\r\n' +
                Utilities.base64Encode(blob.getBytes()) + '\r\n--' + boundary + '--',
@@ -310,7 +319,10 @@ function uploadAndConvert_(blob, filename) {
     }
   );
 
-  if (response.getResponseCode() !== 200) throw new Error('Drive upload failed (' + response.getResponseCode() + '): ' + response.getContentText().substring(0, 200));
+  if (response.getResponseCode() !== 200) {
+    throw new Error('Drive upload failed (' + response.getResponseCode() + '): ' +
+      response.getContentText().substring(0, 200));
+  }
   const result = JSON.parse(response.getContentText());
   if (!result.id) throw new Error('No file ID returned from Drive.');
   return result.id;
@@ -349,7 +361,8 @@ function extractShifts_(display, filename) {
 
     if (startHour === null || lastHour === null) {
       Logger.log('Could not parse times for ' + dayName + ' in ' + filename +
-        ' | first: "' + matchingRows[0].timeStr + '" last: "' + matchingRows[matchingRows.length-1].timeStr + '"');
+        ' | first: "' + matchingRows[0].timeStr + '" last: "' +
+        matchingRows[matchingRows.length - 1].timeStr + '"');
       return;
     }
 
@@ -357,10 +370,18 @@ function extractShifts_(display, filename) {
     const isNight = endHour > 23 || endHour <= startHour;
     const shiftType = isNight ? 'Night' : 'Day';
 
-    const y = shiftDate.getFullYear(), m = shiftDate.getMonth(), d = shiftDate.getDate();
-    const dateStr = y + '-' + pad_(m + 1) + '-' + pad_(d);
-    const startDate = new Date(y, m, d, startHour, 0, 0);
-    const endDate   = new Date(y, m, d + (isNight ? 1 : 0), endHour % 24, 0, 0);
+    // Build dates using explicit year/month/day from the parsed shift date.
+    // Use addDays_() for the overnight end date to handle month-boundary correctly.
+    const y = shiftDate.getFullYear();
+    const mo = shiftDate.getMonth();
+    const d = shiftDate.getDate();
+
+    const startDate = new Date(y, mo, d, startHour, 0, 0, 0);
+    const endDate = isNight
+      ? new Date(y, mo, d + 1, endHour % 24, 0, 0, 0)  // JS Date handles month rollover correctly
+      : new Date(y, mo, d, endHour, 0, 0, 0);
+
+    const dateStr = y + '-' + pad_(mo + 1) + '-' + pad_(d);
 
     const stationNumbers = CONFIG.shiftNumbers[CONFIG.station] || {};
     const shiftNumber = stationNumbers[shiftType] || '';
@@ -433,40 +454,84 @@ function getImportedFilenames_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(CONFIG.importLogTab);
   if (!logSheet || logSheet.getLastRow() < 2) return new Set();
-  return new Set(logSheet.getRange(2, 1, logSheet.getLastRow() - 1, 1).getValues().flat().filter(v => v !== ''));
+  return new Set(
+    logSheet.getRange(2, 1, logSheet.getLastRow() - 1, 1).getValues()
+      .flat().filter(v => v !== '')
+  );
 }
 
 function logImport_(filename, created, skipped, status) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(CONFIG.importLogTab);
   if (!logSheet) return;
-  const row = ['','','','',''];
-  row[LOG_COLS.filename] = filename; row[LOG_COLS.imported_at] = formatDateTime_(new Date());
-  row[LOG_COLS.shifts_created] = created; row[LOG_COLS.shifts_skipped] = skipped; row[LOG_COLS.status] = status;
+  const row = ['', '', '', '', ''];
+  row[LOG_COLS.filename]       = filename;
+  row[LOG_COLS.imported_at]    = formatDateTime_(new Date());
+  row[LOG_COLS.shifts_created] = created;
+  row[LOG_COLS.shifts_skipped] = skipped;
+  row[LOG_COLS.status]         = status;
   logSheet.appendRow(row);
 }
 
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
+/**
+ * Parses a date display string produced by Google Sheets on an Australian
+ * Workspace account. Format is DD/M/YYYY or D/M/YYYY (day-first).
+ *
+ * Examples: "6/3/2026" = 6 March 2026, "20/4/2026" = 20 April 2026
+ *
+ * Disambiguation rules for slash-separated dates:
+ *   - If first number > 12: must be day (DD/MM/YYYY)
+ *   - If second number > 12: must be month-first (MM/DD/YYYY) — shouldn't occur
+ *   - Otherwise: assume day-first (Australian locale)
+ *
+ * The new Date(str) fallback is intentionally removed — if the format is
+ * unexpected it returns null so the caller can log a warning rather than
+ * silently inserting a wrong date.
+ */
 function parseDisplayDate_(str) {
   if (!str || !str.trim()) return null;
   str = str.trim();
+
+  // Primary format: D/M/YYYY or DD/MM/YYYY (Australian locale from Workspace)
   const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if (slashMatch) {
-    const a = parseInt(slashMatch[1]), b = parseInt(slashMatch[2]);
+    const a = parseInt(slashMatch[1]);
+    const b = parseInt(slashMatch[2]);
     const year = parseInt(slashMatch[3]) < 100 ? 2000 + parseInt(slashMatch[3]) : parseInt(slashMatch[3]);
-    if (a > 12) return new Date(year, b - 1, a);
-    if (b > 12) return new Date(year, a - 1, b);
-    return new Date(year, a - 1, b);
+
+    let day, month;
+    if (a > 12) {
+      // First number can only be a day
+      day = a; month = b;
+    } else if (b > 12) {
+      // Second number can only be a day — unexpected for AU locale but handle it
+      day = b; month = a;
+    } else {
+      // Ambiguous — default to day-first (Australian DD/MM/YYYY)
+      day = a; month = b;
+    }
+
+    const d = new Date(year, month - 1, day);
+    return isNaN(d.getTime()) ? null : d;
   }
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? null : d;
+
+  // Log unexpected format rather than silently misparse
+  Logger.log('parseDisplayDate_: unexpected format "' + str + '" — returning null');
+  return null;
 }
 
+/**
+ * Parses a time display string to an hour (0-23).
+ * Handles: "6:00", "18:00", "6:00 AM", "6:00 PM", "18:00:00"
+ */
 function parseDisplayTime_(str) {
   if (!str || !str.trim()) return null;
   str = str.trim();
+
+  // "6:00 AM" / "6:00 PM"
   const ampmMatch = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
   if (ampmMatch) {
     let h = parseInt(ampmMatch[1]);
@@ -475,18 +540,28 @@ function parseDisplayTime_(str) {
     if (!isPM && h === 12) h = 0;
     return h;
   }
+
+  // "6:00" / "18:00" / "18:00:00"
   const plainMatch = str.match(/^(\d{1,2}):\d{2}/);
   if (plainMatch) return parseInt(plainMatch[1]);
+
   return null;
 }
 
-function formatDate_(d) { return d.getFullYear() + '-' + pad_(d.getMonth()+1) + '-' + pad_(d.getDate()); }
-function formatDateTime_(d) { return formatDate_(d) + ' ' + pad_(d.getHours()) + ':' + pad_(d.getMinutes()) + ':' + pad_(d.getSeconds()); }
+function formatDate_(d) {
+  return d.getFullYear() + '-' + pad_(d.getMonth() + 1) + '-' + pad_(d.getDate());
+}
+
+function formatDateTime_(d) {
+  return formatDate_(d) + ' ' +
+    pad_(d.getHours()) + ':' + pad_(d.getMinutes()) + ':' + pad_(d.getSeconds());
+}
+
 function pad_(n) { return String(n).padStart(2, '0'); }
 
 function shiftExists_(sheet, date, startTime) {
   if (sheet.getLastRow() < 2) return false;
-  return sheet.getRange(2, 1, sheet.getLastRow()-1, 15).getValues().some(row =>
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, 15).getValues().some(row =>
     row[SHIFTS_COLS.date].toString().trim() === date &&
     row[SHIFTS_COLS.start_time].toString().trim() === startTime
   );
@@ -495,6 +570,7 @@ function shiftExists_(sheet, date, startTime) {
 /**
  * Generates a shift ID in format YYYY-MM-DD-{D|N}-NNN
  * D = Day shift, N = Night shift
+ * Sequence suffix handles the rare case of two shifts on the same date.
  */
 function generateShiftId_(dateStr, shiftType, sheet) {
   const typeCode = shiftType === 'Night' ? 'N' : 'D';
@@ -502,7 +578,7 @@ function generateShiftId_(dateStr, shiftType, sheet) {
   let maxSeq = 0;
 
   if (sheet.getLastRow() >= 2) {
-    sheet.getRange(2, 1, sheet.getLastRow()-1, 1).getValues().flat().forEach(id => {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().flat().forEach(id => {
       const idStr = id.toString();
       if (idStr.startsWith(prefix)) {
         const seq = parseInt(idStr.slice(prefix.length));
