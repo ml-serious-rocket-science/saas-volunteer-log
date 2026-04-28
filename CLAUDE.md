@@ -8,8 +8,8 @@ Read this file at the start of every session before making any changes.
 
 Last updated: 2026-04-28
 Phase: Prototype — full Sheet implementation in progress
-Last completed: SetupSheet.gs written (idempotent — creates/configures all tabs, safe to rerun); _lists, Shifts, Callouts manually configured; Expenses exists but unconfigured
-Next session: Run SetupSheet.gs → verify all tabs → build callout capture Google Form
+Last completed: Full sheet built; annual stats + month-by-month added to Summary; ExpenseTools.gs written (auto-generates Expense rows from claimable callouts)
+Next session: Paste ExpenseTools.gs into Apps Script → test expense generation → build callout capture Google Form
 Blocked on: Nothing
 
 ---

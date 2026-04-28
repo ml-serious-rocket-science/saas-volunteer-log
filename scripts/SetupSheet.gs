@@ -137,8 +137,8 @@ function setupListsTab_(ss) {
     const claimTypes = [['Callout'], ['Training'], ['Other']];
     sheet.getRange(2, 7, claimTypes.length, 1).setValues(claimTypes);
 
-    // Column H — Expense status (4 values)
-    const expenseStatuses = [['Submitted'], ['Approved'], ['Paid'], ['Rejected']];
+    // Column H — Expense status (5 values)
+    const expenseStatuses = [['Not submitted'], ['Submitted'], ['Approved'], ['Paid'], ['Rejected']];
     sheet.getRange(2, 8, expenseStatuses.length, 1).setValues(expenseStatuses);
 
     // Column I — Shift type (2 values)
@@ -174,7 +174,7 @@ function setupNamedRanges_(ss) {
   ss.setNamedRange('list_yes_no',           sheet.getRange('E2:E3'));
   ss.setNamedRange('list_training_category',sheet.getRange('F2:F9'));
   ss.setNamedRange('list_claim_type',       sheet.getRange('G2:G4'));
-  ss.setNamedRange('list_expense_status',   sheet.getRange('H2:H5'));
+  ss.setNamedRange('list_expense_status',   sheet.getRange('H2:H6'));
   ss.setNamedRange('list_shift_type',       sheet.getRange('I2:I3'));
 
   Logger.log('Named ranges created');

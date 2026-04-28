@@ -77,6 +77,8 @@ function onOpen() {
     .addItem('Import all new rosters', 'importAllNewRosters')
     .addItem('Import latest roster only', 'importLatestRoster')
     .addSeparator()
+    .addItem('Generate expense rows from callouts', 'generateExpenseRows')
+    .addSeparator()
     .addItem('DEBUG: Inspect latest roster', 'debugInspectLatestRoster')
     .addItem('Authorise script (run once after setup)', 'authoriseScript')
     .addToUi();

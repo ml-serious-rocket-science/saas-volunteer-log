@@ -185,7 +185,7 @@ Created when an expense claim is submitted to SAAS.
 | `linked_record_id` | String | Shift or Training ID | Foreign key back to source record |
 | `callout_number` | String | Copied from callout record | Denormalised for easy claim reference |
 | `amount_claimed` | Decimal | e.g. `45.50` | In AUD |
-| `status` | Enum | `Submitted`, `Approved`, `Paid`, `Rejected` | |
+| `status` | Enum | `Not submitted`, `Submitted`, `Approved`, `Paid`, `Rejected` | |
 | `date_paid` | Date | `YYYY-MM-DD` | Blank until paid |
 | `notes` | String | Free text | |
 | `created_at` | Timestamp | `YYYY-MM-DD HH:MM:SS` | |
@@ -225,3 +225,4 @@ Documented here so calculations can be reimplemented in an app — not locked in
 | 2026-04-28 | Added `shift_number` field | SAAS operational shift number (station-specific: Burra Day=60, Night=180); auto-populated by importer |
 | 2026-04-28 | Renamed `response_code` to `priority`, values `PR:1/PR:2/PR:3` | Aligns with SAAS terminology; more meaningful than Code 1/2/3 |
 | 2026-04-28 | Swapped `station` and `shift_number` column order (K/L) | Reads left-to-right as "Burra \| 60" matching SAAS designation Burra60 |
+| 2026-04-28 | Added `Not submitted` to expense status list | Expense rows start as Not submitted; changed to Submitted after entering in SAAS app |

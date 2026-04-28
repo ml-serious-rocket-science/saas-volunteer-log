@@ -110,6 +110,7 @@ Other
 ### Column H — Expense status
 ```
 Expense status
+Not submitted
 Submitted
 Approved
 Paid
@@ -136,7 +137,7 @@ Data → Named ranges, then add each of the following:
 | `_lists!E2:E3` | `list_yes_no` |
 | `_lists!F2:F9` | `list_training_category` |
 | `_lists!G2:G4` | `list_claim_type` |
-| `_lists!H2:H5` | `list_expense_status` |
+| `_lists!H2:H6` | `list_expense_status` |
 | `_lists!I2:I3` | `list_shift_type` |
 
 ---

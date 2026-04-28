@@ -8,6 +8,7 @@ Google Apps Script code and other utilities for the SAAS volunteer log.
 |---|---|
 | `SetupSheet.gs` | One-time idempotent Sheet setup — creates all tabs, headers, validation, formulas |
 | `RosterImport.gs` | Weekly roster importer — reads Gmail, creates Calendar events + Shifts rows |
+| `ExpenseTools.gs` | Expense row generator — scans Callouts for claimable entries, creates Expense rows |
 | `roster-tools/` | Node.js dev scripts used to analyse roster format (not deployed) |
 
 ## New volunteer setup
