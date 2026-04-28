@@ -7,9 +7,9 @@ Read this file at the start of every session before making any changes.
 ## Current status
 
 Last updated: 2026-04-28
-Phase: Prototype — roster importer working ✓
-Last completed: RosterImport.gs fully working — parses Gmail attachments, creates Calendar events (GREEN), writes Shifts + Import Log rows with correct AU dates, shift IDs (YYYY-MM-DD-D/N-NNN), shift numbers (60/180), actual times pre-filled. All 11 historical rosters ready to import.
-Next session: Full Sheet implementation (sheet-setup-spec.md) — Callouts, Training, Expenses, Summary, _lists tabs. Then callout capture Google Form.
+Phase: Prototype — full Sheet implementation in progress
+Last completed: sheet-setup-spec.md written — covers _lists, Callouts, Training, Expenses, Summary tabs with all headers, formulas, validation, and conditional formatting
+Next session: Follow sheet-setup-spec.md to build remaining Sheet tabs → then build callout capture Google Form
 Blocked on: Nothing
 
 ---
@@ -104,6 +104,7 @@ This repo holds **project documentation only** — not the live tool. The live t
 | `scripts/roster-tools/` | Node.js scripts used to analyse roster format (dev only) |
 | `calendar-setup.md` | Step-by-step Google Calendar configuration guide |
 | `sheet-setup-minimal.md` | Minimal Sheet setup — Shifts + Import Log tabs (already built) |
+| `sheet-setup-spec.md` | Full Sheet setup — all remaining tabs with formulas and validation |
 | `CLAUDE.md` | This file |
 
 ---
