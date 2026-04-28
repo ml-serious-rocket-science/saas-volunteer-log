@@ -56,6 +56,7 @@ function setupSheet() {
     setupTrainingTab_(ss);
     setupExpensesTab_(ss);
     setupSummaryTab_(ss);
+    setupSummaryAnnual_(ss);  // Always run — safe to reapply
     setupImportLogTab_(ss);
     reorderTabs_(ss);
 
@@ -224,31 +225,31 @@ function setupCalloutsTab_(ss) {
   sheet.setFrozenRows(1);
 
   const headers = [
-    'callout_id', 'callout_number', 'date', 'time_paged', 'time_cleared',
+    'callout_id', 'callout_number', 'location', 'date', 'time_paged', 'time_cleared',
     'duration_minutes', 'parent_shift_id', 'incident_type', 'priority',
     'patient_count', 'patient_presentation', 'clinical_actions', 'outcome',
     'learning_reflection', 'expense_claimable', 'expense_claim_id', 'created_at'
   ];
   writeHeadersIfEmpty_(sheet, headers);
 
-  // Format time columns
-  sheet.getRange('D2:E1000').setNumberFormat('HH:mm');
-  // Format date column
-  sheet.getRange('C2:C1000').setNumberFormat('yyyy-mm-dd');
-  // Format duration as number
-  sheet.getRange('F2:F1000').setNumberFormat('0');
+  // Format time columns (E=time_paged, F=time_cleared)
+  sheet.getRange('E2:F1000').setNumberFormat('HH:mm');
+  // Format date column (D)
+  sheet.getRange('D2:D1000').setNumberFormat('yyyy-mm-dd');
+  // Format duration as number (G)
+  sheet.getRange('G2:G1000').setNumberFormat('0');
 
-  // Duration formula in F2
-  const durationFormula = '=IF(D2="","",IF(E2="","",IF(E2>D2,(E2-D2)*1440,(E2+1-D2)*1440)))';
-  if (sheet.getRange('F2').getValue() === '' && sheet.getRange('F2').getFormula() === '') {
-    sheet.getRange('F2').setFormula(durationFormula);
+  // Duration formula in G2 (time_paged=E, time_cleared=F)
+  const durationFormula = '=IF(E2="","",IF(F2="","",IF(F2>E2,(F2-E2)*1440,(F2+1-E2)*1440)))';
+  if (sheet.getRange('G2').getValue() === '' && sheet.getRange('G2').getFormula() === '') {
+    sheet.getRange('G2').setFormula(durationFormula);
   }
 
-  // Dropdown validation
-  setDropdownFromRange_(sheet, 'H2:H1000', ss.getRange('list_incident_type'));
-  setDropdownFromRange_(sheet, 'I2:I1000', ss.getRange('list_priority'));
-  setDropdownFromRange_(sheet, 'M2:M1000', ss.getRange('list_outcome'));
-  setDropdownFromRange_(sheet, 'O2:O1000', ss.getRange('list_yes_no'));
+  // Dropdown validation (I=incident_type, J=priority, N=outcome, P=expense_claimable)
+  setDropdownFromRange_(sheet, 'I2:I1000', ss.getRange('list_incident_type'));
+  setDropdownFromRange_(sheet, 'J2:J1000', ss.getRange('list_priority'));
+  setDropdownFromRange_(sheet, 'N2:N1000', ss.getRange('list_outcome'));
+  setDropdownFromRange_(sheet, 'P2:P1000', ss.getRange('list_yes_no'));
 
   Logger.log('Callouts tab configured');
 }
@@ -389,11 +390,11 @@ function setupSummaryTab_(ss) {
   sheet.getRange('A12:B12').setBackground('#FFEBEE');
 
   const calloutData = [
-    ['Total callouts this month',      '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2)'],
-    ['Expense claimable (unclaimed)',   '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!O:O,"Yes",Callouts!P:P,"")'],
-    ['High priority (PR:1-3)',          '=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:1")+(Callouts!I2:I10000="PR:2")+(Callouts!I2:I10000="PR:3")))'],
-    ['Medium priority (PR:4-6)',        '=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:4")+(Callouts!I2:I10000="PR:5")+(Callouts!I2:I10000="PR:6")))'],
-    ['Low priority (PR:7-Other)',       '=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:7")+(Callouts!I2:I10000="PR:8")+(Callouts!I2:I10000="PR:Other")))'],
+    ['Total callouts this month',      '=COUNTIFS(Callouts!D:D,">="&B1,Callouts!D:D,"<="&B2)'],
+    ['Expense claimable (unclaimed)',   '=COUNTIFS(Callouts!D:D,">="&B1,Callouts!D:D,"<="&B2,Callouts!P:P,"Yes",Callouts!Q:Q,"")'],
+    ['High priority (PR:1-3)',          '=SUMPRODUCT((Callouts!D2:D10000>=$B$1)*(Callouts!D2:D10000<=$B$2)*((Callouts!J2:J10000="PR:1")+(Callouts!J2:J10000="PR:2")+(Callouts!J2:J10000="PR:3")))'],
+    ['Medium priority (PR:4-6)',        '=SUMPRODUCT((Callouts!D2:D10000>=$B$1)*(Callouts!D2:D10000<=$B$2)*((Callouts!J2:J10000="PR:4")+(Callouts!J2:J10000="PR:5")+(Callouts!J2:J10000="PR:6")))'],
+    ['Low priority (PR:7-Other)',       '=SUMPRODUCT((Callouts!D2:D10000>=$B$1)*(Callouts!D2:D10000<=$B$2)*((Callouts!J2:J10000="PR:7")+(Callouts!J2:J10000="PR:8")+(Callouts!J2:J10000="PR:Other")))'],
   ];
   writeSection_(sheet, 13, calloutData);
 
@@ -429,7 +430,7 @@ function setupSummaryTab_(ss) {
     ['Total claimed this month',       '=SUMIFS(Expenses!F:F,Expenses!B:B,">="&B1,Expenses!B:B,"<="&B2)'],
     ['Total claimed YTD',              '=SUMIFS(Expenses!F:F,Expenses!B:B,">="&DATE(YEAR(B1),1,1),Expenses!B:B,"<="&B2)'],
     ['Awaiting payment',               '=SUMIFS(Expenses!F:F,Expenses!G:G,"Submitted")'],
-    ['Callouts with unclaimed expenses','=COUNTIFS(Callouts!O:O,"Yes",Callouts!P:P,"")'],
+    ['Callouts with unclaimed expenses','=COUNTIFS(Callouts!P:P,"Yes",Callouts!Q:Q,"")'],
   ];
   writeSection_(sheet, 28, expenseData);
 
@@ -437,6 +438,133 @@ function setupSummaryTab_(ss) {
   sheet.getRange('B28:B30').setNumberFormat('$#,##0.00');
 
   Logger.log('Summary tab configured');
+}
+
+
+// ─── SUMMARY — ANNUAL STATS ────────────────────────────────────────────────────
+
+/**
+ * Adds annual totals and month-by-month breakdown to the Summary tab.
+ * Always safe to reapply — clears and rewrites from row 34 downward.
+ * Can also be run standalone from the menu to update an existing Summary tab.
+ */
+function setupSummaryAnnual_(ss) {
+  const sheet = ss.getSheetByName('Summary');
+  if (!sheet) {
+    Logger.log('Summary tab not found — skipping annual stats');
+    return;
+  }
+
+  // Clear from row 34 downward to allow clean rewrite
+  const lastRow = Math.max(sheet.getLastRow(), 60);
+  if (lastRow >= 34) sheet.getRange(34, 1, lastRow - 33, 8).clearContent().clearFormat();
+
+  sheet.setColumnWidth(3, 80);  // Shifts
+  sheet.setColumnWidth(4, 80);  // Hours
+  sheet.setColumnWidth(5, 90);  // Callouts
+  sheet.setColumnWidth(6, 70);  // High
+  sheet.setColumnWidth(7, 70);  // Med
+  sheet.setColumnWidth(8, 70);  // Low
+
+  // ── Annual totals header ──
+  sheet.getRange('A34').setValue('ANNUAL TOTALS').setFontWeight('bold').setFontSize(11);
+  sheet.getRange('A34:H34').setBackground('#E8EAF6');
+
+  const yearStart = '=DATE(YEAR(B1),1,1)';
+  const yearEnd   = '=DATE(YEAR(B1),12,31)';
+
+  const annualData = [
+    ['Total shifts',    '=COUNTIFS(Shifts!D:D,">="&DATE(YEAR(B1),1,1),Shifts!D:D,"<="&DATE(YEAR(B1),12,31))'],
+    ['Total hours',     '=SUMIFS(Shifts!I:I,Shifts!D:D,">="&DATE(YEAR(B1),1,1),Shifts!D:D,"<="&DATE(YEAR(B1),12,31))'],
+    ['Total callouts',  '=COUNTIFS(Callouts!D:D,">="&DATE(YEAR(B1),1,1),Callouts!D:D,"<="&DATE(YEAR(B1),12,31))'],
+    ['Total claimed',   '=SUMIFS(Expenses!F:F,Expenses!B:B,">="&DATE(YEAR(B1),1,1),Expenses!B:B,"<="&DATE(YEAR(B1),12,31))'],
+    ['Training events', '=COUNTIFS(Training!D:D,">="&DATE(YEAR(B1),1,1),Training!D:D,"<="&DATE(YEAR(B1),12,31),Training!C:C,"Completed")'],
+    ['Training hours',  '=SUMIFS(Training!H:H,Training!D:D,">="&DATE(YEAR(B1),1,1),Training!D:D,"<="&DATE(YEAR(B1),12,31),Training!C:C,"Completed")'],
+  ];
+  writeSection_(sheet, 35, annualData);
+  sheet.getRange('B38').setNumberFormat('$#,##0.00');  // Total claimed
+
+  // ── Month-by-month header ──
+  const mbmStartRow = 43;
+  sheet.getRange(mbmStartRow - 2, 1).setValue('MONTH BY MONTH').setFontWeight('bold').setFontSize(11);
+  sheet.getRange(mbmStartRow - 2, 1, 1, 8).setBackground('#E8EAF6');
+
+  // Column headers
+  const colHeaders = ['Month', '', 'Shifts', 'Hours', 'Callouts', 'High', 'Med', 'Low'];
+  const headerRange = sheet.getRange(mbmStartRow - 1, 1, 1, 8);
+  headerRange.setValues([colHeaders]);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#F5F5F5');
+
+  // 12 month rows
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  months.forEach((month, i) => {
+    const row = mbmStartRow + i;
+    const m = i + 1;  // month number 1-12
+    const mStart = '=DATE(YEAR($B$1),' + m + ',1)';
+    const mEnd   = '=EOMONTH(DATE(YEAR($B$1),' + m + ',1),0)';
+
+    // Shade alternate rows for readability
+    if (i % 2 === 0) sheet.getRange(row, 1, 1, 8).setBackground('#FAFAFA');
+
+    // Highlight current month
+    const isCurrentMonth = '=IF(MONTH(TODAY())=' + m + ',TRUE,FALSE)';
+
+    sheet.getRange(row, 1).setValue(month + ' ' + '=YEAR($B$1)');
+    // Use formula for month label so year updates with B1
+    sheet.getRange(row, 1).setFormula('=TEXT(DATE(YEAR($B$1),' + m + ',1),"MMM YYYY")');
+    sheet.getRange(row, 2).setValue('');  // spacer
+
+    // Shifts
+    sheet.getRange(row, 3).setFormula(
+      '=COUNTIFS(Shifts!D:D,">="&DATE(YEAR($B$1),' + m + ',1),Shifts!D:D,"<="&EOMONTH(DATE(YEAR($B$1),' + m + ',1),0))'
+    );
+    // Hours
+    sheet.getRange(row, 4).setFormula(
+      '=SUMIFS(Shifts!I:I,Shifts!D:D,">="&DATE(YEAR($B$1),' + m + ',1),Shifts!D:D,"<="&EOMONTH(DATE(YEAR($B$1),' + m + ',1),0))'
+    );
+    // Callouts
+    sheet.getRange(row, 5).setFormula(
+      '=COUNTIFS(Callouts!D:D,">="&DATE(YEAR($B$1),' + m + ',1),Callouts!D:D,"<="&EOMONTH(DATE(YEAR($B$1),' + m + ',1),0))'
+    );
+    // High priority (PR:1-3)
+    sheet.getRange(row, 6).setFormula(
+      '=SUMPRODUCT((Callouts!D2:D10000>=DATE(YEAR($B$1),' + m + ',1))*(Callouts!D2:D10000<=EOMONTH(DATE(YEAR($B$1),' + m + ',1),0))*((Callouts!J2:J10000="PR:1")+(Callouts!J2:J10000="PR:2")+(Callouts!J2:J10000="PR:3")))'
+    );
+    // Medium priority (PR:4-6)
+    sheet.getRange(row, 7).setFormula(
+      '=SUMPRODUCT((Callouts!D2:D10000>=DATE(YEAR($B$1),' + m + ',1))*(Callouts!D2:D10000<=EOMONTH(DATE(YEAR($B$1),' + m + ',1),0))*((Callouts!J2:J10000="PR:4")+(Callouts!J2:J10000="PR:5")+(Callouts!J2:J10000="PR:6")))'
+    );
+    // Low priority (PR:7-Other)
+    sheet.getRange(row, 8).setFormula(
+      '=SUMPRODUCT((Callouts!D2:D10000>=DATE(YEAR($B$1),' + m + ',1))*(Callouts!D2:D10000<=EOMONTH(DATE(YEAR($B$1),' + m + ',1),0))*((Callouts!J2:J10000="PR:7")+(Callouts!J2:J10000="PR:8")+(Callouts!J2:J10000="PR:Other")))'
+    );
+  });
+
+  // Highlight current month row with blue tint
+  const currentMonth = new Date().getMonth() + 1;
+  const currentMonthRow = mbmStartRow + currentMonth - 1;
+  sheet.getRange(currentMonthRow, 1, 1, 8).setBackground('#E3F2FD').setFontWeight('bold');
+
+  // Format hours column as 1dp
+  sheet.getRange(mbmStartRow, 4, 12, 1).setNumberFormat('0.0');
+
+  // Totals row at bottom of month table
+  const totalsRow = mbmStartRow + 12;
+  sheet.getRange(totalsRow, 1).setValue('Total').setFontWeight('bold');
+  sheet.getRange(totalsRow, 3).setFormula('=SUM(C' + mbmStartRow + ':C' + (mbmStartRow+11) + ')').setFontWeight('bold');
+  sheet.getRange(totalsRow, 4).setFormula('=SUM(D' + mbmStartRow + ':D' + (mbmStartRow+11) + ')').setFontWeight('bold').setNumberFormat('0.0');
+  sheet.getRange(totalsRow, 5).setFormula('=SUM(E' + mbmStartRow + ':E' + (mbmStartRow+11) + ')').setFontWeight('bold');
+  sheet.getRange(totalsRow, 6).setFormula('=SUM(F' + mbmStartRow + ':F' + (mbmStartRow+11) + ')').setFontWeight('bold');
+  sheet.getRange(totalsRow, 7).setFormula('=SUM(G' + mbmStartRow + ':G' + (mbmStartRow+11) + ')').setFontWeight('bold');
+  sheet.getRange(totalsRow, 8).setFormula('=SUM(H' + mbmStartRow + ':H' + (mbmStartRow+11) + ')').setFontWeight('bold');
+  sheet.getRange(totalsRow, 1, 1, 8).setBackground('#E8EAF6');
+
+  Logger.log('Summary annual stats written');
 }
 
 
@@ -520,4 +648,14 @@ function writeSection_(sheet, startRow, rows) {
     sheet.getRange(r, 1).setValue(row[0]);
     sheet.getRange(r, 2).setFormula(row[1]);
   });
+}
+
+/**
+ * Standalone runner for annual stats section.
+ * Run this from the Apps Script editor or add to a menu.
+ * Safe to run on an existing Summary tab — rewrites from row 34 downward only.
+ */
+function updateAnnualStats() {
+  setupSummaryAnnual_(SpreadsheetApp.getActiveSpreadsheet());
+  SpreadsheetApp.getUi().alert('✓ Annual stats updated on Summary tab.');
 }

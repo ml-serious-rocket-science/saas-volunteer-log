@@ -82,6 +82,7 @@ Captured via Google Form immediately after a callout. No calendar event — the 
 |---|---|---|---|
 | `callout_id` | String | `CO-YYYYMMDD-NNN` | Primary key |
 | `callout_number` | String | As issued by SAAS comms | Critical for expense claims |
+| `location` | String | Free text | Location from pager dispatch e.g. "Burra Community School" |
 | `date` | Date | `YYYY-MM-DD` | Date of callout |
 | `time_paged` | Time | `HH:MM` | Time the page came in |
 | `time_cleared` | Time | `HH:MM` | Time back available / at station |
