@@ -49,8 +49,8 @@ The shift record is created in two stages:
 | `actual_end_time` | Time | `HH:MM` | Pre-filled from `end_time` by importer — edit only if different |
 | `duration_hours` | Decimal | Calculated | Derived from actual times |
 | `shift_type` | Enum | `Day` / `Night` | SAAS vocabulary. Day = starts AM ends before midnight. Night = crosses midnight. Set by importer. |
-| `shift_number` | String | e.g. `60`, `180` | SAAS operational shift number. Station-specific — Burra: Day=60, Night=180. Auto-populated by importer from station config. Enter manually for other stations. |
-| `station` | String | Station name | e.g. `Burra` |
+| `station` | String | Station name | e.g. `Burra` — column K, before shift_number for readability |
+| `shift_number` | String | e.g. `60`, `180` | SAAS operational shift number. Station-specific — Burra: Day=60, Night=180. Column L — reads left-to-right as "Burra \| 60" = Burra60. |
 | `callout_ids` | String | Comma-separated shift IDs | Links to callout records during this shift — filled in Stage 2 |
 | `notes` | String | Free text | Optional |
 | `created_at` | Timestamp | `YYYY-MM-DD HH:MM:SS` | When Sheet row was created |
@@ -62,7 +62,7 @@ The ID is `YYYY-MM-DD-{D|N}-NNN` rather than station-specific (e.g. `burra60`) b
 - Station and shift number are captured in `station` and `shift_number` fields where they belong
 - The sequence suffix (`001`) handles the rare case of two shifts on the same date
 
-**Stage 1 fields (auto-populated by importer):** `shift_id`, `calendar_event_id`, `status = Scheduled`, `date`, `start_time`, `end_time`, `actual_start_time`, `actual_end_time`, `shift_type`, `shift_number`, `station`, `created_at`
+**Stage 1 fields (auto-populated by importer):** `shift_id`, `calendar_event_id`, `status = Scheduled`, `date`, `start_time`, `end_time`, `actual_start_time`, `actual_end_time`, `shift_type`, `station`, `shift_number`, `created_at`
 
 **Stage 2 fields (fill in after shift):** `status → Completed`, `actual_start_time` (if changed), `actual_end_time` (if changed), `callout_ids`, `notes`
 
@@ -88,7 +88,7 @@ Captured via Google Form immediately after a callout. No calendar event — the 
 | `duration_minutes` | Integer | Calculated | Derived — do not store manually |
 | `parent_shift_id` | String | Shift ID | Which shift this callout occurred during |
 | `incident_type` | Enum | See controlled list below | Constrained dropdown |
-| `response_code` | Enum | `Code 1`, `Code 2`, `Code 3` | Urgency of response |
+| `priority` | Enum | `PR:1`, `PR:2`, `PR:3` | SAAS response priority. PR:1 = highest urgency. |
 | `patient_count` | Integer | 0–9 | Number of patients |
 | `patient_presentation` | String | Free text, max 200 chars | Clinical summary — no identifying info |
 | `clinical_actions` | String | Free text, max 500 chars | What you did |
@@ -112,6 +112,12 @@ Captured via Google Form immediately after a callout. No calendar event — the 
 - Non-clinical assist
 - Cancelled en route
 - Other
+
+### Priority controlled list
+
+- PR:1
+- PR:2
+- PR:3
 
 ### Outcome controlled list
 
@@ -184,6 +190,7 @@ Documented here so calculations can be reimplemented in an app — not locked in
 - **Monthly callout count:** `COUNTIFS(callouts.date, ">="&month_start, callouts.date, "<="&month_end)`
 - **Monthly shift hours:** `SUMIFS(shifts.duration_hours, shifts.date, ">="&month_start, shifts.date, "<="&month_end)`
 - **Upcoming shifts (next 14 days):** `FILTER(shifts, shifts.status="Scheduled", shifts.date<=TODAY()+14)`
+- **Callouts by priority:** `COUNTIF(callouts.priority, "PR:1")` etc. per priority level
 - **Callouts by incident type:** `COUNTIF(callouts.incident_type, type_value)` per type
 - **Certs expiring within 60 days:** `COUNTIFS(training.cert_expiry, ">="&TODAY(), training.cert_expiry, "<="&TODAY()+60)`
 - **Total claimed YTD:** `SUMIFS(expenses.amount_claimed, expenses.date_submitted, ">="&year_start)`
@@ -207,3 +214,5 @@ Documented here so calculations can be reimplemented in an app — not locked in
 | 2026-04-28 | `actual_start_time` and `actual_end_time` pre-filled by importer | Defaults to scheduled times — edit by exception only |
 | 2026-04-28 | `shift_id` format changed from `SH-YYYYMMDD-NNN` to `YYYY-MM-DD-{D\|N}-NNN` | Portable across stations; date and type readable at a glance |
 | 2026-04-28 | Added `shift_number` field | SAAS operational shift number (station-specific: Burra Day=60, Night=180); auto-populated by importer |
+| 2026-04-28 | Renamed `response_code` to `priority`, values `PR:1/PR:2/PR:3` | Aligns with SAAS terminology; more meaningful than Code 1/2/3 |
+| 2026-04-28 | Swapped `station` and `shift_number` column order (K/L) | Reads left-to-right as "Burra \| 60" matching SAAS designation Burra60 |

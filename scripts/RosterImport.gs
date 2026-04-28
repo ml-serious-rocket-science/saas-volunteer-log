@@ -57,8 +57,8 @@ const SHIFTS_COLS = {
   actual_end_time:   7,  // H  pre-filled from end_time
   duration_hours:    8,  // I
   shift_type:        9,  // J  Day / Night
-  shift_number:      10, // K  SAAS operational number e.g. 60 / 180
-  station:           11, // L
+  station:           10, // K
+  shift_number:      11, // L  SAAS operational number e.g. 60 / 180 — reads left-to-right as Burra60
   callout_ids:       12, // M
   notes:             13, // N
   created_at:        14, // O

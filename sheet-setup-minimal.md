@@ -31,8 +31,8 @@ Add these column headers in Row 1, exactly as written:
 | H | `actual_end_time` | Pre-filled by importer |
 | I | `duration_hours` | |
 | J | `shift_type` | `Day` or `Night` |
-| K | `shift_number` | e.g. `60` or `180` — SAAS operational number |
-| L | `station` | |
+| K | `station` | e.g. `Burra` |
+| L | `shift_number` | e.g. `60` or `180` — reads naturally as e.g. "Burra 60" left to right |
 | M | `callout_ids` | |
 | N | `notes` | |
 | O | `created_at` | |
@@ -41,7 +41,7 @@ Add these column headers in Row 1, exactly as written:
 - Freeze Row 1: View → Freeze → 1 row
 - Tab colour: Green (right-click tab → Change colour)
 
-**Note:** `actual_start_time` and `actual_end_time` are pre-filled by the importer from scheduled times — edit only if the actual times differed. `shift_number` is the SAAS-assigned number for the shift (Burra: Day=60, Night=180).
+**Note:** `actual_start_time` and `actual_end_time` are pre-filled by the importer from scheduled times — edit only if the actual times differed. Columns K and L read as station then shift number (e.g. Burra | 60) which matches SAAS shift designation convention (Burra60, Burra180).
 
 That's it for this tab — the importer will populate rows automatically.
 

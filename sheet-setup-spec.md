@@ -45,13 +45,14 @@ Cancelled en route
 Other
 ```
 
-### Column B — Response code
+### Column B — Priority
 ```
-Response code
-Code 1
-Code 2
-Code 3
+Priority
+PR:1
+PR:2
+PR:3
 ```
+*(SAAS response priority. PR:1 = highest urgency. Replaces generic "Code 1/2/3" terminology.)*
 
 ### Column C — Outcome
 ```
@@ -123,7 +124,7 @@ Data → Named ranges, then add each of the following:
 | Range | Name |
 |---|---|
 | `_lists!A2:A12` | `list_incident_type` |
-| `_lists!B2:B4` | `list_response_code` |
+| `_lists!B2:B4` | `list_priority` |
 | `_lists!C2:C7` | `list_outcome` |
 | `_lists!D2:D4` | `list_status` |
 | `_lists!E2:E3` | `list_yes_no` |
@@ -139,6 +140,26 @@ Data → Named ranges, then add each of the following:
 The Shifts tab exists but needs dropdown validation added now that `_lists` exists.
 Do not change the column headers — just add validation to data columns.
 
+**Current column order:**
+
+| Col | Header | Notes |
+|-----|--------|-------|
+| A | `shift_id` | |
+| B | `calendar_event_id` | |
+| C | `status` | Dropdown |
+| D | `date` | |
+| E | `start_time` | |
+| F | `end_time` | |
+| G | `actual_start_time` | |
+| H | `actual_end_time` | |
+| I | `duration_hours` | Formula |
+| J | `shift_type` | Dropdown |
+| K | `station` | e.g. `Burra` |
+| L | `shift_number` | e.g. `60` — reads left-to-right as "Burra \| 60" = Burra60 |
+| M | `callout_ids` | |
+| N | `notes` | |
+| O | `created_at` | |
+
 **Add dropdown validation:**
 - Column C (`status`): select C2:C1000 → Data → Data validation → Dropdown from range → `list_status`
 - Column J (`shift_type`): select J2:J1000 → Data → Data validation → Dropdown from range → `list_shift_type`
@@ -148,7 +169,10 @@ In I2, enter and drag down:
 ```
 =IF(G2="","",IF(H2="","",IF(H2>G2,(H2-G2)*24,((H2+1)-G2)*24)))
 ```
-Note: this formula requires actual_start_time and actual_end_time to be entered as time values (HH:MM), not text strings. Format columns G and H as Time (Format → Number → Time).
+**Important formatting notes:**
+- Columns G and H must be formatted as **Time** (Format → Number → Time)
+- Column I must be formatted as **Number** (Format → Number → Number) — NOT Time. If I is formatted as Time, a result of 0.5 (= 12 hours) displays as `12:00:00` instead of `12`. Format I2:I1000 as Number with 1 decimal place.
+- The overnight logic works because Google Sheets stores 18:00 as 0.75 and 06:00 as 0.25. When end < start, the formula adds 1 (= 24 hours) before subtracting.
 
 ---
 
@@ -168,7 +192,7 @@ Create a new tab named `Callouts`. Tab colour: Red.
 | F | `duration_minutes` | Number | Formula — see below |
 | G | `parent_shift_id` | Plain text | e.g. `2026-03-06-D-001` |
 | H | `incident_type` | Plain text | Dropdown: `list_incident_type` |
-| I | `response_code` | Plain text | Dropdown: `list_response_code` |
+| I | `priority` | Plain text | Dropdown: `list_priority` — PR:1, PR:2, PR:3 |
 | J | `patient_count` | Number | 0–9 |
 | K | `patient_presentation` | Plain text | Clinical summary only — no identifying info |
 | L | `clinical_actions` | Plain text | |
@@ -192,7 +216,7 @@ This calculates minutes between time_paged and time_cleared, handling the case w
 
 ### Dropdown validation
 - H2:H1000 → `list_incident_type`
-- I2:I1000 → `list_response_code`
+- I2:I1000 → `list_priority`
 - M2:M1000 → `list_outcome`
 - O2:O1000 → `list_yes_no`
 
@@ -330,14 +354,12 @@ Format B1 as Date.
 | B13 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2)` |
 | A14 | `Expense claimable (unclaimed)` |
 | B14 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!O:O,"Yes",Callouts!P:P,"")` |
-| A15 | `Cardiac / chest pain` |
-| B15 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!H:H,"Cardiac / chest pain")` |
-| A16 | `Trauma / injury` |
-| B16 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!H:H,"Trauma / injury")` |
-| A17 | `Medical — other` |
-| B17 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!H:H,"Medical — other")` |
-| A18 | `Other types` |
-| B18 | `=B13-B15-B16-B17` |
+| A15 | `PR:1 callouts` |
+| B15 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:1")` |
+| A16 | `PR:2 callouts` |
+| B16 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:2")` |
+| A17 | `PR:3 callouts` |
+| B17 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:3")` |
 
 **Section 4: Training and certs (Row 22–27)**
 
@@ -380,7 +402,7 @@ Format B1 as Date.
 - [ ] `_lists` tab created and hidden
 - [ ] Named ranges created for all lists
 - [ ] `Shifts` tab has dropdown validation added (status, shift_type)
-- [ ] `Shifts` tab duration formula in column I
+- [ ] `Shifts` tab duration formula in column I, formatted as Number
 - [ ] `Callouts` tab created with headers, validation, duration formula
 - [ ] `Training` tab created with headers, validation, expiry formula + conditional formatting
 - [ ] `Expenses` tab created with headers and validation
@@ -393,5 +415,4 @@ Format B1 as Date.
 ## Notes
 
 - The Google Form (callout capture) will be set up separately and linked to the Callouts tab. When connected, it will auto-populate rows and generate callout_ids.
-- The duration formula in Shifts (column I) requires G and H to be Time-formatted cells. If times are entered as text the formula will not work.
 - The Summary tab period selector (B1) needs to be updated each month — or you can remove the date filter from the formulas to show all-time totals.
