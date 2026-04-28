@@ -6,11 +6,11 @@ Read this file at the start of every session before making any changes.
 
 ## Current status
 
-Last updated: 2026-04-27
-Phase: Prototype — building foundations
-Last completed: Calendar setup, roster parser proven, Apps Script importer written (scripts/RosterImport.gs)
-Next session: Create Sheet (follow sheet-setup-minimal.md) → paste RosterImport.gs → run authoriseScript() → test import
-Blocked on: Nothing — Sheet creation is the only remaining step before first live test
+Last updated: 2026-04-28
+Phase: Prototype — roster importer working ✓
+Last completed: RosterImport.gs fully working — parses Gmail attachments, creates Calendar events (GREEN), writes Shifts + Import Log rows with correct AU dates, shift IDs (YYYY-MM-DD-D/N-NNN), shift numbers (60/180), actual times pre-filled. All 11 historical rosters ready to import.
+Next session: Full Sheet implementation (sheet-setup-spec.md) — Callouts, Training, Expenses, Summary, _lists tabs. Then callout capture Google Form.
+Blocked on: Nothing
 
 ---
 
@@ -52,7 +52,7 @@ SCHEDULE:   Roster email arrives Wednesday → SAAS Roster → Import latest ros
 ON SHIFT:   Callout occurs → open Form on homescreen → log callout number + details
 
 AFTER:      Open Sheet → update shift record (Scheduled → Completed)
-            Add actual times, link callout IDs
+            Correct actual times only if they differed; add callout IDs
 
 EXPENSE:    Open expense view → all data pre-populated from callout/shift records
 ```
@@ -63,19 +63,22 @@ EXPENSE:    Open expense view → all data pre-populated from callout/shift reco
 
 ### Roster import automation
 
-**Current state:** RosterImport.gs written and ready — needs Sheet to exist for first test.
+**Current state:** RosterImport.gs complete and working.
 
 **What it does:**
 - Searches Gmail for all emails from jazz_vincent@hotmail.com with .xlsm attachments
-- Parses each BURRA ROSTER WEEK file for Liddy shifts
+- Parses BURRA ROSTER WEEK files for Liddy shifts using getDisplayValues() (AU locale DD/MM/YYYY)
 - Shows confirmation dialog before creating anything
-- Creates Calendar events (Eucalyptus) + Shifts tab stub rows
+- Creates Calendar events (GREEN = closest to Eucalyptus) + Shifts tab rows
+- Shift IDs: YYYY-MM-DD-D-001 / YYYY-MM-DD-N-001
+- Shift numbers: Burra Day=60, Night=180 (configurable in CONFIG.shiftNumbers)
+- Actual times pre-filled from scheduled — edit by exception after shift
 - Logs processed filenames in Import Log tab to prevent duplicates
-- Two menu options: "Import all new rosters" (backfill) and "Import latest roster" (weekly use)
+- Two menu options: "Import all new rosters" (backfill) and "Import latest roster" (weekly)
 
-**Layer 3 (stretch):** Automatic Wednesday trigger — add after manual workflow is proven.
+**Layer 3 (stretch):** Automatic Wednesday trigger — add after manual workflow is proven for a month.
 
-**Prompt for future session:** "RosterImport.gs is written — has the Sheet been created and the script tested yet?"
+**Prompt for future session:** "Has the roster import been running reliably for a month? Consider adding a Wednesday auto-trigger."
 
 ### App / PWA
 
@@ -100,7 +103,7 @@ This repo holds **project documentation only** — not the live tool. The live t
 | `scripts/RosterImport.gs` | Apps Script — Gmail → Calendar + Shifts tab importer |
 | `scripts/roster-tools/` | Node.js scripts used to analyse roster format (dev only) |
 | `calendar-setup.md` | Step-by-step Google Calendar configuration guide |
-| `sheet-setup-minimal.md` | Minimal Sheet setup needed for importer (Shifts + Import Log tabs) |
+| `sheet-setup-minimal.md` | Minimal Sheet setup — Shifts + Import Log tabs (already built) |
 | `CLAUDE.md` | This file |
 
 ---
@@ -131,7 +134,7 @@ This repo holds **project documentation only** — not the live tool. The live t
 
 Four record types — full detail in `schema.md`.
 
-**Shift** — two-stage: Scheduled (Calendar event exists) → Completed (actuals filled in). `calendar_event_id` links to Google Calendar.
+**Shift** — two-stage: Scheduled (Calendar event + Sheet row created by importer) → Completed (actuals updated after shift). shift_id format: `YYYY-MM-DD-D-001` or `YYYY-MM-DD-N-001`. `shift_number` = SAAS operational number (Burra: 60/180).
 
 **Callout** — captured via Google Form post-callout. Key fields: `callout_number`, `incident_type`, `patient_presentation`, `clinical_actions`, `learning_reflection`. Links to parent shift via `parent_shift_id`.
 
