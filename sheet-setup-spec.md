@@ -51,8 +51,14 @@ Priority
 PR:1
 PR:2
 PR:3
+PR:4
+PR:5
+PR:6
+PR:7
+PR:8
+PR:Other
 ```
-*(SAAS response priority. PR:1 = highest urgency. Replaces generic "Code 1/2/3" terminology.)*
+*(SAAS response priority. PR:1 = highest urgency. PR:9 is represented as PR:Other.)*
 
 ### Column C — Outcome
 ```
@@ -124,7 +130,7 @@ Data → Named ranges, then add each of the following:
 | Range | Name |
 |---|---|
 | `_lists!A2:A12` | `list_incident_type` |
-| `_lists!B2:B4` | `list_priority` |
+| `_lists!B2:B10` | `list_priority` |
 | `_lists!C2:C7` | `list_outcome` |
 | `_lists!D2:D4` | `list_status` |
 | `_lists!E2:E3` | `list_yes_no` |
@@ -340,7 +346,7 @@ Format B1 as Date.
 | B7 | `=COUNTIFS(Shifts!D:D,">="&B1,Shifts!D:D,"<="&B2,Shifts!J:J,"Night")` |
 | A8 | `Total hours on shift` |
 | B8 | `=SUMIFS(Shifts!I:I,Shifts!D:D,">="&B1,Shifts!D:D,"<="&B2)` |
-| A9 | `Shifts not yet completed` |
+| A9 | `Past shifts still Scheduled` |
 | B9 | `=COUNTIFS(Shifts!C:C,"Scheduled",Shifts!D:D,"<"&TODAY())` |
 | A10 | `Upcoming shifts (next 14 days)` |
 | B10 | `=COUNTIFS(Shifts!C:C,"Scheduled",Shifts!D:D,">="&TODAY(),Shifts!D:D,"<="&TODAY()+14)` |
@@ -354,12 +360,12 @@ Format B1 as Date.
 | B13 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2)` |
 | A14 | `Expense claimable (unclaimed)` |
 | B14 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!O:O,"Yes",Callouts!P:P,"")` |
-| A15 | `PR:1 callouts` |
-| B15 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:1")` |
-| A16 | `PR:2 callouts` |
-| B16 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:2")` |
-| A17 | `PR:3 callouts` |
-| B17 | `=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:3")` |
+| A15 | `High priority (PR:1-3)` |
+| B15 | `=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:1")+(Callouts!I2:I10000="PR:2")+(Callouts!I2:I10000="PR:3")))` |
+| A16 | `Medium priority (PR:4-6)` |
+| B16 | `=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:4")+(Callouts!I2:I10000="PR:5")+(Callouts!I2:I10000="PR:6")))` |
+| A17 | `Low priority (PR:7-Other)` |
+| B17 | `=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:7")+(Callouts!I2:I10000="PR:8")+(Callouts!I2:I10000="PR:Other")))` |
 
 **Section 4: Training and certs (Row 22–27)**
 

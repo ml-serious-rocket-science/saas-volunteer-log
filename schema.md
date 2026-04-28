@@ -118,6 +118,14 @@ Captured via Google Form immediately after a callout. No calendar event — the 
 - PR:1
 - PR:2
 - PR:3
+- PR:4
+- PR:5
+- PR:6
+- PR:7
+- PR:8
+- PR:Other
+
+*(PR:9 = PR:Other)*
 
 ### Outcome controlled list
 
@@ -194,7 +202,7 @@ Documented here so calculations can be reimplemented in an app — not locked in
 - **Callouts by incident type:** `COUNTIF(callouts.incident_type, type_value)` per type
 - **Certs expiring within 60 days:** `COUNTIFS(training.cert_expiry, ">="&TODAY(), training.cert_expiry, "<="&TODAY()+60)`
 - **Total claimed YTD:** `SUMIFS(expenses.amount_claimed, expenses.date_submitted, ">="&year_start)`
-- **Shifts not yet completed:** `COUNTIFS(shifts.status, "Scheduled", shifts.date, "<"&TODAY())` — past shifts still marked Scheduled
+- **Past shifts still Scheduled:** `COUNTIFS(shifts.status, "Scheduled", shifts.date, "<"&TODAY())` — past shifts not yet marked Completed, need follow-up
 
 ---
 

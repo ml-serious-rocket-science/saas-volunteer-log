@@ -66,7 +66,7 @@ function setupSheet() {
       'All tabs created and configured.\n\n' +
       'Next steps:\n' +
       '• Right-click the _lists tab → Hide sheet\n' +
-      '• On the Summary tab, set cell B1 to the first day of the current month (e.g. 2026-05-01)\n' +
+      '• On the Summary tab, set cell B1 to the first day of the current month (e.g. 2026-05-01) — this drives all monthly stats\n' +
       '• Link your Google Form to the Callouts tab when ready'
     );
 
@@ -104,8 +104,8 @@ function setupListsTab_(ss) {
     ];
     sheet.getRange(2, 1, incidentTypes.length, 1).setValues(incidentTypes.map(v => [v]));
 
-    // Column B — Priority (3 values)
-    const priorities = [['PR:1'], ['PR:2'], ['PR:3']];
+    // Column B — Priority (9 values: PR:1–PR:8 + PR:Other)
+    const priorities = [['PR:1'], ['PR:2'], ['PR:3'], ['PR:4'], ['PR:5'], ['PR:6'], ['PR:7'], ['PR:8'], ['PR:Other']];
     sheet.getRange(2, 2, priorities.length, 1).setValues(priorities);
 
     // Column C — Outcome (6 values)
@@ -167,7 +167,7 @@ function setupNamedRanges_(ss) {
   if (!sheet) throw new Error('_lists tab not found — run setupListsTab_ first');
 
   ss.setNamedRange('list_incident_type',    sheet.getRange('A2:A12'));
-  ss.setNamedRange('list_priority',         sheet.getRange('B2:B4'));
+  ss.setNamedRange('list_priority',         sheet.getRange('B2:B10'));
   ss.setNamedRange('list_outcome',          sheet.getRange('C2:C7'));
   ss.setNamedRange('list_status',           sheet.getRange('D2:D4'));
   ss.setNamedRange('list_yes_no',           sheet.getRange('E2:E3'));
@@ -370,7 +370,7 @@ function setupSummaryTab_(ss) {
     ['Day shifts',                     '=COUNTIFS(Shifts!D:D,">="&B1,Shifts!D:D,"<="&B2,Shifts!J:J,"Day")'],
     ['Night shifts',                   '=COUNTIFS(Shifts!D:D,">="&B1,Shifts!D:D,"<="&B2,Shifts!J:J,"Night")'],
     ['Total hours on shift',           '=SUMIFS(Shifts!I:I,Shifts!D:D,">="&B1,Shifts!D:D,"<="&B2)'],
-    ['Shifts not yet completed',       '=COUNTIFS(Shifts!C:C,"Scheduled",Shifts!D:D,"<"&TODAY())'],
+    ['Past shifts still Scheduled',     '=COUNTIFS(Shifts!C:C,"Scheduled",Shifts!D:D,"<"&TODAY())'],
     ['Upcoming shifts (next 14 days)', '=COUNTIFS(Shifts!C:C,"Scheduled",Shifts!D:D,">="&TODAY(),Shifts!D:D,"<="&TODAY()+14)'],
   ];
   writeSection_(sheet, 5, shiftData);
@@ -391,9 +391,9 @@ function setupSummaryTab_(ss) {
   const calloutData = [
     ['Total callouts this month',      '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2)'],
     ['Expense claimable (unclaimed)',   '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!O:O,"Yes",Callouts!P:P,"")'],
-    ['PR:1 callouts',                  '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:1")'],
-    ['PR:2 callouts',                  '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:2")'],
-    ['PR:3 callouts',                  '=COUNTIFS(Callouts!C:C,">="&B1,Callouts!C:C,"<="&B2,Callouts!I:I,"PR:3")'],
+    ['High priority (PR:1-3)',          '=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:1")+(Callouts!I2:I10000="PR:2")+(Callouts!I2:I10000="PR:3")))'],
+    ['Medium priority (PR:4-6)',        '=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:4")+(Callouts!I2:I10000="PR:5")+(Callouts!I2:I10000="PR:6")))'],
+    ['Low priority (PR:7-Other)',       '=SUMPRODUCT((Callouts!C2:C10000>=$B$1)*(Callouts!C2:C10000<=$B$2)*((Callouts!I2:I10000="PR:7")+(Callouts!I2:I10000="PR:8")+(Callouts!I2:I10000="PR:Other")))'],
   ];
   writeSection_(sheet, 13, calloutData);
 
@@ -405,7 +405,7 @@ function setupSummaryTab_(ss) {
     ['Training events this month',     '=COUNTIFS(Training!D:D,">="&B1,Training!D:D,"<="&B2,Training!C:C,"Completed")'],
     ['Training hours this month',      '=SUMIFS(Training!H:H,Training!D:D,">="&B1,Training!D:D,"<="&B2,Training!C:C,"Completed")'],
     ['Certs expiring within 60 days',  '=COUNTIFS(Training!K:K,">="&TODAY(),Training!K:K,"<="&TODAY()+60)'],
-    ['Certs already expired',          '=COUNTIFS(Training!K:K,"<"&TODAY(),Training!K:K,"<>""&"")'],
+    ['Certs already expired',          '=COUNTIFS(Training!K:K,"<"&TODAY(),Training!K:K,"<>""")'],
   ];
   writeSection_(sheet, 21, trainingData);
 
