@@ -21,7 +21,8 @@
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  rosterSender:     'jazz_vincent@hotmail.com',
+  // Gmail senders to search for roster emails — add new senders here
+  rosterSenders:    ['jazz_vincent@hotmail.com'],
   attachmentPrefix: 'BURRA ROSTER WEEK',
   calendarName:     'SAAS Volunteering',
   shiftsTab:        'Shifts',
@@ -98,7 +99,7 @@ function authoriseScript() {
 function debugInspectLatestRoster() {
   const ui = SpreadsheetApp.getUi();
   const threads = findRosterEmails_();
-  if (threads.length === 0) { ui.alert('No roster emails found.'); return; }
+  if (threads.length === 0) { ui.alert('No roster emails found from: ' + CONFIG.rosterSenders.join(', ') + '.'); return; }
   const attachments = collectRosterAttachments_(threads);
   if (attachments.length === 0) { ui.alert('No matching attachments found.'); return; }
 
@@ -155,7 +156,7 @@ function importAllNewRosters() {
   const ui = SpreadsheetApp.getUi();
 
   const threads = findRosterEmails_();
-  if (threads.length === 0) { ui.alert('No roster emails found from ' + CONFIG.rosterSender + '.'); return; }
+  if (threads.length === 0) { ui.alert('No roster emails found from: ' + CONFIG.rosterSenders.join(', ') + '.'); return; }
 
   const attachments = collectRosterAttachments_(threads);
   if (attachments.length === 0) { ui.alert('No attachments matching "' + CONFIG.attachmentPrefix + '".'); return; }
@@ -220,7 +221,7 @@ function importAllNewRosters() {
 function importLatestRoster() {
   const ui = SpreadsheetApp.getUi();
   const threads = findRosterEmails_();
-  if (threads.length === 0) { ui.alert('No roster emails found.'); return; }
+  if (threads.length === 0) { ui.alert('No roster emails found from: ' + CONFIG.rosterSenders.join(', ') + '.'); return; }
 
   const attachments = collectRosterAttachments_(threads);
   const importedNames = getImportedFilenames_();
@@ -257,7 +258,13 @@ function importLatestRoster() {
 // ─── GMAIL ────────────────────────────────────────────────────────────────────
 
 function findRosterEmails_() {
-  return GmailApp.search('from:' + CONFIG.rosterSender + ' has:attachment', 0, 50);
+  // Search for emails from all configured senders
+  const threads = [];
+  CONFIG.rosterSenders.forEach(sender => {
+    const results = GmailApp.search('from:' + sender + ' has:attachment', 0, 50);
+    results.forEach(t => threads.push(t));
+  });
+  return threads;
 }
 
 function collectRosterAttachments_(threads) {
