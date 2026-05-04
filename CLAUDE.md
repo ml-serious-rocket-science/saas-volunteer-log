@@ -6,10 +6,10 @@ Read this file at the start of every session before making any changes.
 
 ## Current status
 
-Last updated: 2026-04-28
-Phase: Prototype — full Sheet implementation in progress
-Last completed: Full sheet built; annual stats + month-by-month added to Summary; ExpenseTools.gs written (auto-generates Expense rows from claimable callouts)
-Next session: Paste ExpenseTools.gs into Apps Script → test expense generation → build callout capture Google Form
+Last updated: 2026-05-02
+Phase: Prototype — in active use
+Last completed: Roster importer fully working with multiple senders, deduplication, pre-flight shift existence check. Full sheet built with Callouts, Training, Expenses, Summary (monthly + annual). Expense auto-generation working for callouts and training.
+Next session: Build callout capture Google Form for Android homescreen
 Blocked on: Nothing
 
 ---

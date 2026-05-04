@@ -659,3 +659,40 @@ function updateAnnualStats() {
   setupSummaryAnnual_(SpreadsheetApp.getActiveSpreadsheet());
   SpreadsheetApp.getUi().alert('✓ Annual stats updated on Summary tab.');
 }
+
+/**
+ * Sorts all data tabs by their event date column, oldest first.
+ * Shifts → col D (date), Callouts → col D (date), Training → col D (date), Expenses → col B (date_submitted)
+ * Safe to run at any time — preserves all data, just reorders rows.
+ */
+function sortAllTabsByDate() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+
+  const tabs = [
+    { name: 'Shifts',   dateCol: 4 },  // D = date
+    { name: 'Callouts', dateCol: 4 },  // D = date
+    { name: 'Training', dateCol: 4 },  // D = date
+    { name: 'Expenses', dateCol: 2 },  // B = date_submitted
+  ];
+
+  const sorted = [];
+  const skipped = [];
+
+  tabs.forEach(tab => {
+    const sheet = ss.getSheetByName(tab.name);
+    if (!sheet || sheet.getLastRow() < 3) {
+      skipped.push(tab.name + ' (empty or not found)');
+      return;
+    }
+    const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+    dataRange.sort({ column: tab.dateCol, ascending: true });
+    sorted.push(tab.name);
+    Logger.log('Sorted ' + tab.name + ' by column ' + tab.dateCol);
+  });
+
+  let msg = '';
+  if (sorted.length > 0) msg += '✓ Sorted by date: ' + sorted.join(', ');
+  if (skipped.length > 0) msg += '\n\nSkipped (empty or not found): ' + skipped.join(', ');
+  ui.alert(msg || 'Nothing to sort.');
+}

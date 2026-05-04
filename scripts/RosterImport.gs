@@ -22,7 +22,7 @@
 
 const CONFIG = {
   // Gmail senders to search for roster emails — add new senders here
-  rosterSenders:    ['jazz_vincent@hotmail.com'],
+  rosterSenders:    ['jazz_vincent@hotmail.com', 'kymnmichelle.harvey@gmail.com'],
   attachmentPrefix: 'BURRA ROSTER WEEK',
   calendarName:     'SAAS Volunteering',
   shiftsTab:        'Shifts',
@@ -79,6 +79,8 @@ function onOpen() {
     .addItem('Import latest roster only', 'importLatestRoster')
     .addSeparator()
     .addItem('Generate expense rows from callouts', 'generateExpenseRows')
+    .addSeparator()
+    .addItem('Sort all tabs by date', 'sortAllTabsByDate')
     .addSeparator()
     .addItem('DEBUG: Inspect latest roster', 'debugInspectLatestRoster')
     .addItem('Authorise script (run once after setup)', 'authoriseScript')
@@ -180,8 +182,14 @@ function importAllNewRosters() {
     }
   });
 
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shiftsSheet = ss.getSheetByName(CONFIG.shiftsTab);
+
   const lines = ['Ready to import from ' + toProcess.length + ' new roster file(s).' +
-    (alreadyDone > 0 ? ' (' + alreadyDone + ' already done.)' : ''), ''];
+    (alreadyDone > 0 ? ' (' + alreadyDone + ' already in Import Log.)' : ''), ''];
+
+  let newShiftCount = 0;
+  let existingShiftCount = 0;
 
   toProcess.forEach(att => {
     const fileShifts = allShifts.filter(s => s._sourceFile === att.filename);
@@ -189,13 +197,26 @@ function importAllNewRosters() {
     lines.push('📄 ' + att.filename);
     if (err) lines.push('   ⚠ Error: ' + err.error);
     else if (fileShifts.length === 0) lines.push('   (no shifts for ' + CONFIG.volunteerName + ' this week)');
-    else fileShifts.forEach(s => lines.push(
-      '   • ' + s.date + ' (' + s.shiftType + ')  ' + s.startTime + '–' + s.endTime +
-      '  shift #' + (s.shiftNumber || '?')
-    ));
+    else fileShifts.forEach(s => {
+      const exists = shiftsSheet && shiftExists_(shiftsSheet, s.date, s.startTime);
+      if (exists) {
+        lines.push('   ✓ ' + s.date + ' (' + s.shiftType + ')  ' + s.startTime + '–' + s.endTime + '  (already in Sheet — will skip)');
+        existingShiftCount++;
+      } else {
+        lines.push('   • ' + s.date + ' (' + s.shiftType + ')  ' + s.startTime + '–' + s.endTime + '  shift #' + (s.shiftNumber || '?'));
+        newShiftCount++;
+      }
+    });
   });
 
-  lines.push('', 'Continue?');
+  if (newShiftCount === 0) {
+    ui.alert('All shifts from unprocessed roster files already exist in the Shifts tab.\n\nNothing new to insert.');
+    return;
+  }
+
+  lines.push('');
+  lines.push('New shifts to create: ' + newShiftCount + (existingShiftCount > 0 ? '  |  Already in Sheet (will skip): ' + existingShiftCount : ''));
+  lines.push('Continue?');
   const response = ui.alert('Confirm roster import', lines.join('\n'), ui.ButtonSet.YES_NO);
   if (response !== ui.Button.YES) { ui.alert('Import cancelled — nothing was changed.'); return; }
 
@@ -428,28 +449,43 @@ function createEventsAndRows_(shifts) {
     const shiftId = generateShiftId_(shift.date, shift.shiftType, shiftsSheet);
     shift.shiftId = shiftId;
 
-    const event = calendar.createEvent(
-      'On-call — ' + shift.station,
-      shift.startDate, shift.endDate,
-      { description: 'Sheet record: ' + shiftId }
-    );
-    event.setColor(CONFIG.eventColour);
-    const eventId = event.getId();
+    // Create Calendar event
+    let eventId = '';
+    try {
+      const event = calendar.createEvent(
+        'On-call — ' + shift.station,
+        shift.startDate, shift.endDate,
+        { description: 'Sheet record: ' + shiftId }
+      );
+      event.setColor(CONFIG.eventColour);
+      eventId = event.getId();
+    } catch(e) {
+      Logger.log('ERROR creating Calendar event for ' + shiftId + ': ' + e.message);
+      throw new Error('Calendar event creation failed for ' + shiftId + ': ' + e.message);
+    }
 
-    const row = new Array(15).fill('');
-    row[SHIFTS_COLS.shift_id]          = shiftId;
-    row[SHIFTS_COLS.calendar_event_id] = eventId;
-    row[SHIFTS_COLS.status]            = 'Scheduled';
-    row[SHIFTS_COLS.date]              = shift.date;
-    row[SHIFTS_COLS.start_time]        = shift.startTime;
-    row[SHIFTS_COLS.end_time]          = shift.endTime;
-    row[SHIFTS_COLS.actual_start_time] = shift.startTime;
-    row[SHIFTS_COLS.actual_end_time]   = shift.endTime;
-    row[SHIFTS_COLS.shift_type]        = shift.shiftType;
-    row[SHIFTS_COLS.shift_number]      = shift.shiftNumber;
-    row[SHIFTS_COLS.station]           = shift.station;
-    row[SHIFTS_COLS.created_at]        = formatDateTime_(new Date());
-    shiftsSheet.appendRow(row);
+    // Append row to Shifts tab
+    try {
+      const row = new Array(15).fill('');
+      row[SHIFTS_COLS.shift_id]          = shiftId;
+      row[SHIFTS_COLS.calendar_event_id] = eventId;
+      row[SHIFTS_COLS.status]            = 'Scheduled';
+      row[SHIFTS_COLS.date]              = shift.date;
+      row[SHIFTS_COLS.start_time]        = shift.startTime;
+      row[SHIFTS_COLS.end_time]          = shift.endTime;
+      row[SHIFTS_COLS.actual_start_time] = shift.startTime;
+      row[SHIFTS_COLS.actual_end_time]   = shift.endTime;
+      row[SHIFTS_COLS.shift_type]        = shift.shiftType;
+      row[SHIFTS_COLS.shift_number]      = shift.shiftNumber;
+      row[SHIFTS_COLS.station]           = shift.station;
+      row[SHIFTS_COLS.created_at]        = formatDateTime_(new Date());
+      shiftsSheet.appendRow(row);
+      Logger.log('Shift row written: ' + shiftId);
+    } catch(e) {
+      Logger.log('ERROR writing Shifts row for ' + shiftId + ': ' + e.message);
+      throw new Error('Shifts tab write failed for ' + shiftId + ': ' + e.message);
+    }
+
     created++;
   });
 
@@ -472,7 +508,10 @@ function getImportedFilenames_() {
 function logImport_(filename, created, skipped, status) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(CONFIG.importLogTab);
-  if (!logSheet) return;
+  if (!logSheet) {
+    Logger.log('WARNING: Import Log tab "' + CONFIG.importLogTab + '" not found — could not log import of ' + filename);
+    return;
+  }
   const row = ['', '', '', '', ''];
   row[LOG_COLS.filename]       = filename;
   row[LOG_COLS.imported_at]    = formatDateTime_(new Date());
@@ -480,6 +519,7 @@ function logImport_(filename, created, skipped, status) {
   row[LOG_COLS.shifts_skipped] = skipped;
   row[LOG_COLS.status]         = status;
   logSheet.appendRow(row);
+  Logger.log('Logged import: ' + filename + ' | created=' + created + ' skipped=' + skipped + ' status=' + status);
 }
 
 
@@ -570,10 +610,19 @@ function pad_(n) { return String(n).padStart(2, '0'); }
 
 function shiftExists_(sheet, date, startTime) {
   if (sheet.getLastRow() < 2) return false;
-  return sheet.getRange(2, 1, sheet.getLastRow() - 1, 15).getValues().some(row =>
-    row[SHIFTS_COLS.date].toString().trim() === date &&
-    row[SHIFTS_COLS.start_time].toString().trim() === startTime
-  );
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, 15).getValues().some(row => {
+    // Normalise date — Sheet may store as Date object or string
+    const sheetDate = row[SHIFTS_COLS.date];
+    const sheetDateStr = sheetDate instanceof Date
+      ? Utilities.formatDate(sheetDate, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : sheetDate.toString().trim();
+    // Normalise start time — Sheet may store as Date object (time fraction) or string
+    const sheetTime = row[SHIFTS_COLS.start_time];
+    const sheetTimeStr = sheetTime instanceof Date
+      ? Utilities.formatDate(sheetTime, Session.getScriptTimeZone(), 'HH:mm')
+      : sheetTime.toString().trim();
+    return sheetDateStr === date && sheetTimeStr === startTime;
+  });
 }
 
 /**
