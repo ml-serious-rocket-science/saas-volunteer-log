@@ -214,6 +214,12 @@ function fixCalloutIds() {
     const currentId = row[CO_COLS.callout_id].toString().trim();
     const date = row[CO_COLS.date];
 
+    // Skip entirely empty rows (no date and no callout_id)
+    const dateStr = date instanceof Date ? date.toISOString() : date.toString().trim();
+    if (!dateStr && !currentId) return;
+    // Also skip rows where date is a zero-value Date (empty date cell read as Date)
+    if (date instanceof Date && date.getFullYear() < 2000) return;
+
     if (!currentId) {
       problems.push({ rowIndex, currentId, date, issue: 'missing' });
     } else if (!isValidCalloutId_(currentId)) {
